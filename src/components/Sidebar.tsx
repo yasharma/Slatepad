@@ -151,7 +151,7 @@ export function Sidebar({
           placeholder="Search notes…"
           className="mt-3 w-full rounded-md border border-border bg-input-bg px-2.5 py-1.5 text-sm text-text-primary outline-none placeholder:text-text-muted focus:border-text-muted"
         />
-        <div className="mt-2 flex gap-1">
+        <div className="mt-2 flex items-center gap-1">
           <button
             type="button"
             onClick={() => onSetView("active")}
@@ -174,17 +174,20 @@ export function Sidebar({
           >
             Archive ({archivedNotes.length})
           </button>
-          {!isArchived && (
-            <button
-              type="button"
-              title={`Sort: ${sortLabel[sort]} (click to cycle)`}
-              onClick={nextSort}
-              className="rounded px-2 py-1 text-xs text-text-muted hover:bg-surface-hover hover:text-text-secondary"
-            >
-              {sortLabel[sort]}
-            </button>
-          )}
         </div>
+        {!isArchived && (
+          <button
+            type="button"
+            title={`Sort by: ${sortLabel[sort]} — click to change`}
+            onClick={nextSort}
+            className="mt-1.5 flex w-full items-center gap-1 rounded px-1.5 py-1 text-xs text-text-muted hover:bg-surface-hover hover:text-text-secondary"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3 shrink-0" aria-hidden>
+              <path fillRule="evenodd" d="M2 4.75A.75.75 0 0 1 2.75 4h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 4.75ZM2 8a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 2 8Zm0 3.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5A.75.75 0 0 1 2 11.25Z" clipRule="evenodd" />
+            </svg>
+            Sort: {sortLabel[sort]}
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-2">

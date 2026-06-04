@@ -1,4 +1,43 @@
 use tauri_plugin_sql::{Migration, MigrationKind};
+use std::process::Command;
+
+/// Write HTML to a temp file and open it in the default browser so the user
+/// can use the browser's native "Print → Save as PDF" dialog.
+#[tauri::command]
+fn open_print_preview(html: String, title: String) -> Result<(), String> {
+    let tmp_path = std::env::temp_dir().join(format!("slatepad-print-{}.html", uuid_simple()));
+    std::fs::write(&tmp_path, html.as_bytes()).map_err(|e| e.to_string())?;
+
+    #[cfg(target_os = "macos")]
+    Command::new("open")
+        .arg(tmp_path.to_str().unwrap_or(""))
+        .spawn()
+        .map_err(|e| e.to_string())?;
+
+    #[cfg(target_os = "windows")]
+    Command::new("cmd")
+        .args(["/c", "start", tmp_path.to_str().unwrap_or("")])
+        .spawn()
+        .map_err(|e| e.to_string())?;
+
+    #[cfg(target_os = "linux")]
+    Command::new("xdg-open")
+        .arg(tmp_path.to_str().unwrap_or(""))
+        .spawn()
+        .map_err(|e| e.to_string())?;
+
+    let _ = title; // used in the HTML, not here
+    Ok(())
+}
+
+fn uuid_simple() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let t = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    format!("{:x}", t)
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -42,6 +81,7 @@ pub fn run() {
                 .add_migrations("sqlite:notes.db", migrations)
                 .build(),
         )
+        .invoke_handler(tauri::generate_handler![open_print_preview])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

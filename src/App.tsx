@@ -9,6 +9,7 @@ import { Sidebar } from "./components/Sidebar";
 import { TagsInput } from "./components/TagsInput";
 import { TitleInput } from "./components/TitleInput";
 import { copyMarkdownToClipboard } from "./lib/exportMarkdown";
+import { openPrintPreview } from "./lib/printNote";
 import { useNotes } from "./hooks/useNotes";
 import { useTheme } from "./hooks/useTheme";
 
@@ -73,9 +74,14 @@ function App() {
     void archiveNote();
   }, [archiveNote]);
 
-  const handlePrintPdf = useCallback(() => {
-    window.print();
-  }, []);
+  const handlePrintPdf = useCallback(async () => {
+    if (!activeNote) return;
+    try {
+      await openPrintPreview(activeNote);
+    } catch (err) {
+      console.error("Print failed:", err);
+    }
+  }, [activeNote]);
 
   const handleSidebarArchive = useCallback(
     (id: string) => {
