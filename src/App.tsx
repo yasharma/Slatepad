@@ -211,17 +211,19 @@ function App() {
         </div>
       )}
 
-      {/* ── Unified full-width top bar ── */}
+      {/* ── Unified top bar (two rows) ── */}
       <header
-        className="no-print flex shrink-0 items-stretch border-b border-border"
+        className="no-print flex shrink-0 flex-col"
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       >
-        {/* Sidebar column: traffic-light space + icon controls */}
+        {/* Row 1: full-width strip behind macOS traffic lights — ALL sidebar color */}
+        <div className="h-[28px] w-full shrink-0 bg-sidebar-bg" />
+
+        {/* Row 2: split — sidebar bg on left (icon controls), note bg on right (save + menu) */}
+        <div className="flex items-stretch border-b border-border">
         <div
           className="flex w-[240px] shrink-0 flex-col justify-end border-r border-border bg-sidebar-bg"
         >
-          {/* Row that clears macOS traffic lights (~28 px tall) */}
-          <div className="h-[28px]" />
           {/* Icon controls */}
           <div
             className="flex items-center justify-between px-3 pb-2"
@@ -302,6 +304,7 @@ function App() {
             />
           )}
         </div>
+        </div>{/* end row 2 split */}
       </header>
 
       {/* ── Body: sidebar + note area ── */}
