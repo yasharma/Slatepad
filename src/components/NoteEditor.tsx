@@ -3,6 +3,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import { editorExtensions } from "../lib/tiptap";
 import { EditorBubbleMenu } from "./EditorBubbleMenu";
 import { EditorToolbar } from "./EditorToolbar";
+import { TableMenu } from "./TableMenu";
 
 interface NoteEditorProps {
   content: JSONContent;
@@ -29,6 +30,7 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
     <div>
       <EditorToolbar editor={editor} />
       <EditorBubbleMenu editor={editor} />
+      <TableMenu editor={editor} />
       <EditorContent editor={editor} />
     </div>
   );

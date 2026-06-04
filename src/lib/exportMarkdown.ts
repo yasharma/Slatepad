@@ -79,6 +79,33 @@ function nodeToMd(node: JSONContent, depth = 0): string {
       return "---";
     case "hardBreak":
       return "  \n";
+    case "table": {
+      const rows = node.content ?? [];
+      const rendered = rows.map((row) => nodeToMd(row, depth));
+      const firstRow = rows[0];
+      const firstCell = firstRow?.content?.[0];
+      const hasHeader = firstCell?.type === "tableHeader";
+      if (hasHeader && rendered.length > 0) {
+        const cols = (firstRow?.content ?? []).length;
+        const separator = "| " + Array(cols).fill("---").join(" | ") + " |";
+        rendered.splice(1, 0, separator);
+      }
+      return rendered.join("\n");
+    }
+    case "tableRow": {
+      const cells = (node.content ?? []).map(
+        (cell) => nodeToMd(cell, depth).replace(/\s*\n+\s*/g, " ").trim() || " ",
+      );
+      return "| " + cells.join(" | ") + " |";
+    }
+    case "tableHeader":
+    case "tableCell": {
+      return (node.content ?? [])
+        .map((child) => nodeToMd(child, depth))
+        .join("")
+        .replace(/\n+/g, " ")
+        .trim();
+    }
     default:
       return (node.content ?? []).map((child) => nodeToMd(child, depth)).join("");
   }

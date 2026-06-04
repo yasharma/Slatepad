@@ -4,6 +4,7 @@ import {
   insertDivider,
   insertNowTime,
   insertQuote,
+  insertTable,
   insertTodayDate,
   insertTodoList,
   setLink,
@@ -74,6 +75,13 @@ export const slashCommands: SlashCommandItem[] = [
     keywords: ["code", "snippet", "pre"],
     shortcut: "code",
     command: ({ editor, range }) => insertCodeBlock(editor, range),
+  },
+  {
+    title: "Table",
+    description: "Insert a 3×3 table with a header row",
+    keywords: ["table", "grid", "rows", "columns"],
+    shortcut: "table",
+    command: ({ editor, range }) => insertTable(editor, range),
   },
   {
     title: "Heading 1",

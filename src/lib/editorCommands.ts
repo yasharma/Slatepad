@@ -49,6 +49,12 @@ export function toggleHighlight(editor: Editor, range?: Range) {
   withRange(editor, range).toggleHighlight().run();
 }
 
+export function insertTable(editor: Editor, range?: Range) {
+  withRange(editor, range)
+    .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+    .run();
+}
+
 export function setLink(editor: Editor, range?: Range) {
   if (range) {
     editor.chain().focus().deleteRange(range).run();
