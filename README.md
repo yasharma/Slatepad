@@ -7,29 +7,41 @@
 ## Features
 
 ### Notes
-- Sidebar with search, pinned notes, and tags
+- Minimal sidebar with pinned notes, tags, and sort (Modified / Created / A–Z)
+- Full-text search via **Quick Switcher** (`⌘K`) — titles, tags, and note content
 - Archive (soft delete) with restore and empty archive
+- Direct delete from note menu, sidebar context menu, or `⌘Delete`
 - Auto-save to local SQLite (~500ms debounce)
-- Duplicate note and copy note as Markdown
+- Per-note emoji icon for quick visual identification
+- Duplicate note, copy as Markdown, and **Export PDF** (system print dialog)
 
 ### Editor
 - Rich text: bold, italic, strikethrough, headings, lists
 - Todo lists with checkboxes, quotes, code blocks, links, dividers
+- **Tables** — insert via `/table` slash command, edit rows/columns in bubble menu
+- **Markdown** — paste Markdown as rich text; type `# ` / `## ` / `### ` for headings
 - Insert today's date or timestamp
 - **`/` slash menu** for quick blocks
 - **Bubble menu** on text selection (B, I, strike, link, code)
+- **Find in note** (`⌘F`) with match highlighting; Quick Switcher opens find when you pick a search result
+- **Full width / Standard** layout toggle in the note menu
 
 ### Shortcuts
 | Shortcut | Action |
 |----------|--------|
 | `⌘/Ctrl N` | New note |
-| `⌘/Ctrl K` | Quick switcher (jump to note) |
+| `⌘/Ctrl K` | Quick switcher (search all notes) |
+| `⌘/Ctrl F` | Find within note |
+| `⌘/Ctrl P` | Pin / unpin note |
 | `⌘/Ctrl Backspace` | Archive note |
+| `⌘/Ctrl Delete` | Delete note permanently |
 | `/` | Slash commands in editor |
 | `?` | Keyboard shortcuts help |
+| Right-click note | Pin, Duplicate, Export PDF, Archive, Delete |
 
 ### Appearance
-- Light / dark mode (saved locally)
+- Light / dark / system theme (saved locally)
+- Native macOS title bar blends with sidebar and note area
 
 ## Tech stack
 
