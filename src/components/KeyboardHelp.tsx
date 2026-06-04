@@ -6,6 +6,7 @@ interface KeyboardHelpProps {
 const shortcuts = [
   { keys: "⌘ N", action: "New note" },
   { keys: "⌘ K", action: "Search / Quick switcher" },
+  { keys: "⌘ F", action: "Find within note" },
   { keys: "⌘ P", action: "Pin / unpin note" },
   { keys: "⌘ Backspace", action: "Archive note" },
   { keys: "⌘ Delete", action: "Delete note permanently" },

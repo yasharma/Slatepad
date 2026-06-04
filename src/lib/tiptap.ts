@@ -7,6 +7,7 @@ import { Table, TableRow, TableHeader, TableCell } from "@tiptap/extension-table
 import StarterKit from "@tiptap/starter-kit";
 import { MarkdownPasteExtension } from "./markdownPasteExtension";
 import { SlashCommandExtension } from "./slashCommandExtension";
+import { FindExtension } from "./findExtension";
 
 export const editorExtensions = [
   StarterKit.configure({
@@ -34,4 +35,5 @@ export const editorExtensions = [
   TableCell,
   MarkdownPasteExtension,
   SlashCommandExtension,
+  FindExtension,
 ];

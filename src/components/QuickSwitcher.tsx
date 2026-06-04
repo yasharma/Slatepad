@@ -6,7 +6,7 @@ import type { NoteSummary } from "../lib/types";
 interface QuickSwitcherProps {
   open: boolean;
   notes: NoteSummary[];
-  onSelect: (id: string) => void;
+  onSelect: (id: string, query?: string) => void;
   onCreate: () => void;
   onClose: () => void;
 }
@@ -67,7 +67,8 @@ function QuickSwitcherInner({
   const choose = (index: number) => {
     const note = filtered[index];
     if (note) {
-      onSelect(note.id);
+      // Pass the query so the editor can highlight the search term inside the note
+      onSelect(note.id, query.trim() || undefined);
       onClose();
     }
   };

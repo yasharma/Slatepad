@@ -62,6 +62,7 @@ function App() {
   const [deleteDirectOpen, setDeleteDirectOpen] = useState(false);
   const [deleteSidebarId, setDeleteSidebarId] = useState<string | null>(null);
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState<string | undefined>();
   const [helpOpen, setHelpOpen] = useState(false);
   const [exportStatus, setExportStatus] = useState<"idle" | "copied">("idle");
 
@@ -129,6 +130,12 @@ function App() {
       if (mod && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setQuickSwitcherOpen(true);
+        return;
+      }
+
+      if (mod && e.key.toLowerCase() === "f" && !quickSwitcherOpen) {
+        // Let the NoteEditor's own handleKeyDown deal with it
+        // (it intercepts Cmd+F before it bubbles up here)
         return;
       }
 
@@ -233,6 +240,8 @@ function App() {
               <NoteEditor
                 key={activeNote.id}
                 content={activeContent}
+                findQuery={findQuery}
+                onFindQueryConsumed={() => setFindQuery(undefined)}
                 onChange={updateContent}
               />
             </div>
@@ -283,7 +292,10 @@ function App() {
       <QuickSwitcher
         open={quickSwitcherOpen}
         notes={notes}
-        onSelect={(id) => void selectNote(id)}
+        onSelect={(id, query) => {
+          void selectNote(id);
+          if (query) setFindQuery(query);
+        }}
         onCreate={handleCreateNote}
         onClose={() => setQuickSwitcherOpen(false)}
       />
