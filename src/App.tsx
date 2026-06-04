@@ -40,6 +40,7 @@ function App() {
     archiveNote,
     restoreNote,
     deleteArchivedPermanently,
+    deleteActiveNote,
     emptyTrash,
     togglePin,
     togglePinById,
@@ -47,6 +48,7 @@ function App() {
     updateTitle,
     updateTags,
     updateContent,
+    updateIcon,
     flushSave,
     clearError,
   } = useNotes();
@@ -56,6 +58,8 @@ function App() {
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [emptyArchiveOpen, setEmptyArchiveOpen] = useState(false);
   const [deleteArchivedOpen, setDeleteArchivedOpen] = useState(false);
+  const [deleteDirectOpen, setDeleteDirectOpen] = useState(false);
+  const [deleteSidebarId, setDeleteSidebarId] = useState<string | null>(null);
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [exportStatus, setExportStatus] = useState<"idle" | "copied">("idle");
@@ -68,6 +72,29 @@ function App() {
     setArchiveOpen(false);
     void archiveNote();
   }, [archiveNote]);
+
+  const handlePrintPdf = useCallback(() => {
+    window.print();
+  }, []);
+
+  const handleSidebarArchive = useCallback(
+    (id: string) => {
+      void selectNote(id).then(() => setArchiveOpen(true));
+    },
+    [selectNote],
+  );
+
+  const handleSidebarDelete = useCallback((id: string) => {
+    setDeleteSidebarId(id);
+  }, []);
+
+  const handleSidebarDeleteConfirm = useCallback(async () => {
+    if (!deleteSidebarId) return;
+    setDeleteSidebarId(null);
+    // Select the note then delete it
+    await selectNote(deleteSidebarId);
+    void deleteActiveNote();
+  }, [deleteSidebarId, selectNote, deleteActiveNote]);
 
   const handleTogglePinFromSidebar = useCallback(
     (id: string) => {
@@ -111,6 +138,18 @@ function App() {
         return;
       }
 
+      if (mod && e.key === "Delete" && activeNote) {
+        e.preventDefault();
+        setDeleteDirectOpen(true);
+        return;
+      }
+
+      if (mod && e.key.toLowerCase() === "p" && activeNote && !activeNote.archived_at) {
+        e.preventDefault();
+        void togglePin();
+        return;
+      }
+
       if (e.key === "?" && !isTypingTarget(e.target)) {
         e.preventDefault();
         setHelpOpen(true);
@@ -118,7 +157,7 @@ function App() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [createNote, activeNote]);
+  }, [createNote, activeNote, togglePin]);
 
   useEffect(() => {
     const onBeforeUnload = () => {
@@ -167,6 +206,8 @@ function App() {
         onCreateNote={handleCreateNote}
         onSetView={(view) => void setSidebarView(view)}
         onTogglePin={(id) => void handleTogglePinFromSidebar(id)}
+        onArchiveNote={handleSidebarArchive}
+        onDeleteNote={handleSidebarDelete}
         onOpenPreferences={() => setPreferencesOpen(true)}
         onShowHelp={() => setHelpOpen(true)}
         onEmptyTrash={() => setEmptyArchiveOpen(true)}
@@ -175,7 +216,12 @@ function App() {
       <main className="flex min-w-0 flex-1 flex-col">
         {activeNote && activeContent ? (
           <div className="flex h-full flex-col overflow-y-auto px-10 py-8">
-            <TitleInput value={activeNote.title} onChange={updateTitle} />
+            <TitleInput
+              value={activeNote.title}
+              icon={activeNote.icon ?? ""}
+              onChange={updateTitle}
+              onIconChange={(icon) => void updateIcon(icon)}
+            />
             <TagsInput value={activeNote.tags} onChange={updateTags} />
             <div className="mt-4 flex-1">
               <NoteEditor
@@ -207,7 +253,9 @@ function App() {
                 onTogglePin={() => void togglePin()}
                 onDuplicate={() => void duplicateNote()}
                 onExport={() => void handleExport()}
+                onPrintPdf={handlePrintPdf}
                 onArchive={() => setArchiveOpen(true)}
+                onDelete={() => setDeleteDirectOpen(true)}
                 exportStatus={exportStatus}
               />
             )}
@@ -272,6 +320,27 @@ function App() {
           void emptyTrash();
         }}
         onCancel={() => setEmptyArchiveOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={deleteDirectOpen}
+        title="Delete note permanently?"
+        message="This note will be removed immediately and cannot be recovered."
+        confirmLabel="Delete"
+        onConfirm={() => {
+          setDeleteDirectOpen(false);
+          void deleteActiveNote();
+        }}
+        onCancel={() => setDeleteDirectOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteSidebarId)}
+        title="Delete note permanently?"
+        message="This note will be removed immediately and cannot be recovered."
+        confirmLabel="Delete"
+        onConfirm={() => void handleSidebarDeleteConfirm()}
+        onCancel={() => setDeleteSidebarId(null)}
       />
     </div>
   );

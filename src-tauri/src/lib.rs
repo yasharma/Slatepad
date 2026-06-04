@@ -28,6 +28,12 @@ pub fn run() {
             ",
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 3,
+            description: "add_icon_column",
+            sql: "ALTER TABLE notes ADD COLUMN icon TEXT NOT NULL DEFAULT '';",
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

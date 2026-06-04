@@ -281,6 +281,48 @@ export function useNotes() {
     [scheduleSave],
   );
 
+  const updateIcon = useCallback(async (icon: string) => {
+    const note = activeNoteRef.current;
+    if (!note) return;
+    setError(null);
+    try {
+      await db.updateNote(note.id, { icon });
+      setActiveNote((prev) => (prev ? { ...prev, icon } : prev));
+      await refreshList();
+    } catch (err) {
+      console.error("Failed to update icon:", err);
+      setError("Could not update icon.");
+    }
+  }, [refreshList]);
+
+  const deleteActiveNote = useCallback(async () => {
+    const note = activeNoteRef.current;
+    if (!note) return;
+    setError(null);
+    try {
+      await db.deleteNotePermanently(note.id);
+      const list = await db.listNotes();
+      setNotes(list);
+      const archived = await db.listArchivedNotes();
+      setArchivedNotes(archived);
+      if (list.length > 0) {
+        const next = await db.getNote(list[0].id);
+        setActiveNote(next);
+        setSidebarView("active");
+      } else if (archived.length > 0) {
+        const next = await db.getNote(archived[0].id);
+        setActiveNote(next);
+        setSidebarView("archived");
+      } else {
+        setActiveNote(null);
+        setSidebarView("active");
+      }
+    } catch (err) {
+      console.error("Failed to delete note:", err);
+      setError("Could not delete note.");
+    }
+  }, [refreshList]);
+
   const switchSidebarView = useCallback(
     async (view: SidebarView) => {
       await flushSave();
@@ -325,6 +367,8 @@ export function useNotes() {
     updateTitle,
     updateTags,
     updateContent,
+    updateIcon,
+    deleteActiveNote,
     flushSave,
     clearError,
   };

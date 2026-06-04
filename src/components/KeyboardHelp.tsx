@@ -5,9 +5,12 @@ interface KeyboardHelpProps {
 
 const shortcuts = [
   { keys: "⌘ N", action: "New note" },
-  { keys: "⌘ K", action: "Quick switcher" },
+  { keys: "⌘ K", action: "Search / Quick switcher" },
+  { keys: "⌘ P", action: "Pin / unpin note" },
   { keys: "⌘ Backspace", action: "Archive note" },
+  { keys: "⌘ Delete", action: "Delete note permanently" },
   { keys: "/", action: "Insert block (slash menu)" },
+  { keys: "Right-click note", action: "Pin / Archive / Delete" },
   { keys: "?", action: "Show shortcuts" },
   { keys: "Esc", action: "Close dialogs" },
 ];

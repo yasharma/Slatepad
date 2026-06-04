@@ -6,7 +6,7 @@ import { EMPTY_DOC_STRING } from "./types";
 const DB_URL = "sqlite:notes.db";
 
 const NOTE_FIELDS =
-  "id, title, content, created_at, updated_at, pinned, tags, archived_at";
+  "id, title, content, created_at, updated_at, pinned, tags, icon, archived_at";
 
 let dbPromise: Promise<Database> | null = null;
 
@@ -22,6 +22,7 @@ function mapNote(row: Note): Note {
     ...row,
     pinned: row.pinned ?? 0,
     tags: row.tags ?? "",
+    icon: row.icon ?? "",
     archived_at: row.archived_at ?? null,
   };
 }
@@ -29,7 +30,7 @@ function mapNote(row: Note): Note {
 export async function listNotes(): Promise<NoteSummary[]> {
   const db = await getDb();
   const rows = await db.select<NoteSummary[]>(
-    `SELECT id, title, content, updated_at, pinned, tags, archived_at
+    `SELECT id, title, content, created_at, updated_at, pinned, tags, icon, archived_at
      FROM notes
      WHERE archived_at IS NULL
      ORDER BY pinned DESC, updated_at DESC`,
@@ -38,6 +39,7 @@ export async function listNotes(): Promise<NoteSummary[]> {
     ...row,
     pinned: row.pinned ?? 0,
     tags: row.tags ?? "",
+    icon: row.icon ?? "",
     archived_at: null,
   }));
 }
@@ -45,7 +47,7 @@ export async function listNotes(): Promise<NoteSummary[]> {
 export async function listArchivedNotes(): Promise<NoteSummary[]> {
   const db = await getDb();
   const rows = await db.select<NoteSummary[]>(
-    `SELECT id, title, content, updated_at, pinned, tags, archived_at
+    `SELECT id, title, content, created_at, updated_at, pinned, tags, icon, archived_at
      FROM notes
      WHERE archived_at IS NOT NULL
      ORDER BY archived_at DESC`,
@@ -54,6 +56,7 @@ export async function listArchivedNotes(): Promise<NoteSummary[]> {
     ...row,
     pinned: row.pinned ?? 0,
     tags: row.tags ?? "",
+    icon: row.icon ?? "",
   }));
 }
 
@@ -75,8 +78,8 @@ export async function createNote(): Promise<Note> {
   const content = EMPTY_DOC_STRING;
 
   await db.execute(
-    `INSERT INTO notes (id, title, content, created_at, updated_at, pinned, tags, archived_at)
-     VALUES ($1, $2, $3, $4, $5, 0, '', NULL)`,
+    `INSERT INTO notes (id, title, content, created_at, updated_at, pinned, tags, icon, archived_at)
+     VALUES ($1, $2, $3, $4, $5, 0, '', '', NULL)`,
     [id, title, content, now, now],
   );
 
@@ -88,6 +91,7 @@ export async function createNote(): Promise<Note> {
     updated_at: now,
     pinned: 0,
     tags: "",
+    icon: "",
     archived_at: null,
   };
 }
@@ -107,9 +111,9 @@ export async function duplicateNote(id: string): Promise<Note> {
       : `${source.title} (copy)`;
 
   await db.execute(
-    `INSERT INTO notes (id, title, content, created_at, updated_at, pinned, tags, archived_at)
-     VALUES ($1, $2, $3, $4, $5, 0, $6, NULL)`,
-    [newId, title, source.content, now, now, source.tags],
+    `INSERT INTO notes (id, title, content, created_at, updated_at, pinned, tags, icon, archived_at)
+     VALUES ($1, $2, $3, $4, $5, 0, $6, $7, NULL)`,
+    [newId, title, source.content, now, now, source.tags, source.icon],
   );
 
   return {
@@ -120,6 +124,7 @@ export async function duplicateNote(id: string): Promise<Note> {
     updated_at: now,
     pinned: 0,
     tags: source.tags,
+    icon: source.icon,
     archived_at: null,
   };
 }
@@ -131,6 +136,7 @@ export async function updateNote(
     content?: string;
     tags?: string;
     pinned?: number;
+    icon?: string;
   },
 ): Promise<void> {
   const db = await getDb();
@@ -153,6 +159,10 @@ export async function updateNote(
   if (patch.pinned !== undefined) {
     fields.push("pinned = $" + (values.length + 1));
     values.push(patch.pinned);
+  }
+  if (patch.icon !== undefined) {
+    fields.push("icon = $" + (values.length + 1));
+    values.push(patch.icon);
   }
 
   if (fields.length === 0) {

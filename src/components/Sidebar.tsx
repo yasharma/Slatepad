@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { filterNotes } from "../lib/searchNotes";
-import type { NoteSummary, SaveStatus, SidebarView } from "../lib/types";
+import type { NoteSummary, SaveStatus, SidebarView, SortOption } from "../lib/types";
 import { NoteListItem } from "./NoteListItem";
 
 interface SidebarProps {
@@ -13,6 +13,8 @@ interface SidebarProps {
   onCreateNote: () => void;
   onSetView: (view: SidebarView) => void;
   onTogglePin: (id: string) => void;
+  onArchiveNote: (id: string) => void;
+  onDeleteNote: (id: string) => void;
   onOpenPreferences: () => void;
   onShowHelp: () => void;
   onEmptyTrash: () => void;
@@ -25,7 +27,30 @@ function saveStatusLabel(status: SaveStatus): string {
     case "saved":
       return "Saved";
     default:
-      return "Ready";
+      return "";
+  }
+}
+
+function sortNotes(notes: NoteSummary[], sort: SortOption): NoteSummary[] {
+  const copy = [...notes];
+  switch (sort) {
+    case "modified":
+      return copy.sort((a, b) => {
+        if (b.pinned !== a.pinned) return b.pinned - a.pinned;
+        return b.updated_at - a.updated_at;
+      });
+    case "created":
+      return copy.sort((a, b) => {
+        if (b.pinned !== a.pinned) return b.pinned - a.pinned;
+        return b.created_at - a.created_at;
+      });
+    case "alpha":
+      return copy.sort((a, b) => {
+        if (b.pinned !== a.pinned) return b.pinned - a.pinned;
+        const ta = (a.title || "Untitled").toLowerCase();
+        const tb = (b.title || "Untitled").toLowerCase();
+        return ta.localeCompare(tb);
+      });
   }
 }
 
@@ -39,17 +64,36 @@ export function Sidebar({
   onCreateNote,
   onSetView,
   onTogglePin,
+  onArchiveNote,
+  onDeleteNote,
   onOpenPreferences,
   onShowHelp,
   onEmptyTrash,
 }: SidebarProps) {
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SortOption>("modified");
+
   const isArchived = sidebarView === "archived";
   const sourceNotes = isArchived ? archivedNotes : notes;
-  const visibleNotes = useMemo(
-    () => filterNotes(sourceNotes, search),
-    [sourceNotes, search],
-  );
+
+  const visibleNotes = useMemo(() => {
+    const filtered = filterNotes(sourceNotes, search);
+    return isArchived ? filtered : sortNotes(filtered, sort);
+  }, [sourceNotes, search, sort, isArchived]);
+
+  const sortLabel: Record<SortOption, string> = {
+    modified: "Modified",
+    created: "Created",
+    alpha: "A–Z",
+  };
+
+  const cycleSorts: SortOption[] = ["modified", "created", "alpha"];
+  const nextSort = () => {
+    setSort((s) => {
+      const idx = cycleSorts.indexOf(s);
+      return cycleSorts[(idx + 1) % cycleSorts.length]!;
+    });
+  };
 
   return (
     <aside className="flex h-full w-[260px] shrink-0 flex-col border-r border-border bg-sidebar-bg">
@@ -130,6 +174,16 @@ export function Sidebar({
           >
             Archive ({archivedNotes.length})
           </button>
+          {!isArchived && (
+            <button
+              type="button"
+              title={`Sort: ${sortLabel[sort]} (click to cycle)`}
+              onClick={nextSort}
+              className="rounded px-2 py-1 text-xs text-text-muted hover:bg-surface-hover hover:text-text-secondary"
+            >
+              {sortLabel[sort]}
+            </button>
+          )}
         </div>
       </div>
 
@@ -153,6 +207,8 @@ export function Sidebar({
                 active={note.id === activeNoteId}
                 onSelect={onSelectNote}
                 onTogglePin={isArchived ? undefined : onTogglePin}
+                onArchive={isArchived ? undefined : onArchiveNote}
+                onDelete={onDeleteNote}
               />
             ))}
           </div>
@@ -169,9 +225,11 @@ export function Sidebar({
             Empty archive
           </button>
         )}
-        <div className="text-xs text-text-muted">
-          {saveStatusLabel(saveStatus)}
-        </div>
+        {saveStatus !== "idle" && (
+          <div className="text-xs text-text-muted">
+            {saveStatusLabel(saveStatus)}
+          </div>
+        )}
       </div>
     </aside>
   );

@@ -471,3 +471,53 @@
 .btn-primary:hover {
   background: var(--primary-btn-hover);
 }
+
+/* ---- Print / Export PDF ---- */
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  aside,
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .print-area {
+    display: block;
+    padding: 0;
+    margin: 0;
+  }
+
+  .tiptap {
+    font-size: 12pt;
+    line-height: 1.6;
+  }
+
+  .tiptap h1 { font-size: 20pt; }
+  .tiptap h2 { font-size: 16pt; }
+  .tiptap h3 { font-size: 13pt; }
+
+  .tiptap a {
+    color: #000;
+    text-decoration: underline;
+  }
+
+  .tiptap table td,
+  .tiptap table th {
+    border: 1px solid #ccc;
+  }
+
+  /* Hide editor toolbar, bubble menu, table menu */
+  [class*="toolbar"],
+  [class*="bubble-menu"],
+  [class*="table-menu"] {
+    display: none !important;
+  }
+}

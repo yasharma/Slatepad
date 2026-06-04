@@ -15,6 +15,7 @@ export interface Note {
   updated_at: number;
   pinned: number;
   tags: string;
+  icon: string;
   archived_at: number | null;
 }
 
@@ -22,12 +23,16 @@ export interface NoteSummary {
   id: string;
   title: string;
   content: string;
+  created_at: number;
   updated_at: number;
   pinned: number;
   tags: string;
+  icon: string;
   archived_at: number | null;
 }
 
 export type SaveStatus = "idle" | "saving" | "saved";
 
 export type SidebarView = "active" | "archived";
+
+export type SortOption = "modified" | "created" | "alpha";
