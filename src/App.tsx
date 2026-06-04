@@ -226,7 +226,7 @@ function App() {
         >
           {/* Icon controls */}
           <div
-            className="flex items-center justify-between px-3 pb-2"
+            className="flex items-center justify-between px-3 pb-1"
             style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
           >
             <button
@@ -268,7 +268,7 @@ function App() {
 
         {/* Note column: same bg as note content so it blends seamlessly */}
         <div
-          className="flex min-w-0 flex-1 items-end justify-between bg-app-bg px-8 pb-2"
+          className="flex min-w-0 flex-1 items-end justify-between bg-app-bg px-8 pb-1"
           style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
         >
           <span className="text-xs text-text-muted">
@@ -337,7 +337,7 @@ function App() {
 
             {/* Note content */}
             <div
-              className={`flex flex-1 flex-col overflow-y-auto pt-3 pb-8 ${
+              className={`flex flex-1 flex-col overflow-y-auto pb-8 ${
                 fullWidth ? "px-6" : "mx-auto w-full max-w-3xl px-10"
               }`}
             >
