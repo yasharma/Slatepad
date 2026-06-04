@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { KeyboardHelp } from "./components/KeyboardHelp";
 import { PreferencesDialog } from "./components/PreferencesDialog";
-import { NoteActionsBar } from "./components/NoteActionsBar";
+import { NoteMenu } from "./components/NoteMenu";
 import { NoteEditor } from "./components/NoteEditor";
 import { QuickSwitcher } from "./components/QuickSwitcher";
 import { Sidebar } from "./components/Sidebar";
 import { TagsInput } from "./components/TagsInput";
-import { TitleInput } from "./components/TitleInput";
+import { TitleInput, type TitleInputHandle } from "./components/TitleInput";
 import { copyMarkdownToClipboard } from "./lib/exportMarkdown";
 import { openPrintPreview } from "./lib/printNote";
 import { useNotes } from "./hooks/useNotes";
@@ -26,6 +26,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 function App() {
+  const titleRef = useRef<TitleInputHandle>(null);
   const {
     notes,
     archivedNotes,
@@ -65,6 +66,7 @@ function App() {
   const [findQuery, setFindQuery] = useState<string | undefined>();
   const [helpOpen, setHelpOpen] = useState(false);
   const [exportStatus, setExportStatus] = useState<"idle" | "copied">("idle");
+  const [fullWidth, setFullWidth] = useState(false);
 
   const handleCreateNote = useCallback(() => {
     void createNote();
@@ -228,52 +230,63 @@ function App() {
 
       <main className="flex min-w-0 flex-1 flex-col">
         {activeNote && activeContent ? (
-          <div className="flex h-full flex-col overflow-y-auto px-10 py-8">
-            <TitleInput
-              value={activeNote.title}
-              icon={activeNote.icon ?? ""}
-              onChange={updateTitle}
-              onIconChange={(icon) => void updateIcon(icon)}
-            />
-            <TagsInput value={activeNote.tags} onChange={updateTags} />
-            <div className="mt-4 flex-1">
-              <NoteEditor
-                key={activeNote.id}
-                content={activeContent}
-                findQuery={findQuery}
-                onFindQueryConsumed={() => setFindQuery(undefined)}
-                onChange={updateContent}
-              />
-            </div>
-            {isArchivedNote ? (
-              <div className="mt-6 flex flex-wrap gap-4 border-t border-border-subtle pt-4">
-                <button
-                  type="button"
-                  onClick={() => void restoreNote()}
-                  className="text-sm text-text-secondary hover:text-text-primary"
-                >
-                  Restore
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeleteArchivedOpen(true)}
-                  className="text-sm text-red-500 hover:text-red-600"
-                >
-                  Delete permanently
-                </button>
-              </div>
-            ) : (
-              <NoteActionsBar
+          <div className="flex h-full flex-col overflow-y-auto">
+            {/* Top bar: save status + three-dot menu */}
+            <div className="no-print flex shrink-0 items-center justify-between border-b border-border-subtle px-8 py-2">
+              <span className="text-xs text-text-muted">
+                {saveStatus === "saving"
+                  ? "Saving…"
+                  : saveStatus === "saved"
+                    ? "Saved"
+                    : ""}
+              </span>
+              <NoteMenu
                 pinned={Boolean(activeNote.pinned)}
+                fullWidth={fullWidth}
+                isArchived={isArchivedNote}
+                exportStatus={exportStatus}
+                onRename={() => {
+                  requestAnimationFrame(() => titleRef.current?.focus());
+                }}
                 onTogglePin={() => void togglePin()}
                 onDuplicate={() => void duplicateNote()}
-                onExport={() => void handleExport()}
-                onPrintPdf={handlePrintPdf}
+                onCopyMarkdown={() => void handleExport()}
+                onExportPdf={() => void handlePrintPdf()}
+                onToggleWidth={() => setFullWidth((v) => !v)}
                 onArchive={() => setArchiveOpen(true)}
-                onDelete={() => setDeleteDirectOpen(true)}
-                exportStatus={exportStatus}
+                onDelete={() =>
+                  isArchivedNote
+                    ? setDeleteArchivedOpen(true)
+                    : setDeleteDirectOpen(true)
+                }
+                onRestore={isArchivedNote ? () => void restoreNote() : undefined}
               />
-            )}
+            </div>
+
+            {/* Note content */}
+            <div
+              className={`flex flex-1 flex-col overflow-y-auto py-8 ${
+                fullWidth ? "px-6" : "mx-auto w-full max-w-3xl px-10"
+              }`}
+            >
+              <TitleInput
+                ref={titleRef}
+                value={activeNote.title}
+                icon={activeNote.icon ?? ""}
+                onChange={updateTitle}
+                onIconChange={(icon) => void updateIcon(icon)}
+              />
+              <TagsInput value={activeNote.tags} onChange={updateTags} />
+              <div className="mt-4 flex-1">
+                <NoteEditor
+                  key={activeNote.id}
+                  content={activeContent}
+                  findQuery={findQuery}
+                  onFindQueryConsumed={() => setFindQuery(undefined)}
+                  onChange={updateContent}
+                />
+              </div>
+            </div>
           </div>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-text-secondary">

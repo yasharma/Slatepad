@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 const QUICK_EMOJIS = [
   "📝", "💡", "📌", "⭐", "🔥", "✅", "🚀", "📚",
@@ -105,6 +105,10 @@ function EmojiPicker({ current, onPick, onClose }: EmojiPickerProps) {
   );
 }
 
+export interface TitleInputHandle {
+  focus: () => void;
+}
+
 interface TitleInputProps {
   value: string;
   icon: string;
@@ -112,50 +116,61 @@ interface TitleInputProps {
   onIconChange: (icon: string) => void;
 }
 
-export function TitleInput({ value, icon, onChange, onIconChange }: TitleInputProps) {
-  const [pickerOpen, setPickerOpen] = useState(false);
+export const TitleInput = forwardRef<TitleInputHandle, TitleInputProps>(
+  function TitleInput({ value, icon, onChange, onIconChange }, ref) {
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
 
-  return (
-    <div className="relative flex items-start gap-2">
-      <div className="relative mt-1 shrink-0">
-        <button
-          type="button"
-          title="Set note icon"
-          onClick={() => setPickerOpen((v) => !v)}
-          className={`flex h-9 w-9 items-center justify-center rounded-lg border text-xl transition-colors ${
-            icon
-              ? "border-border bg-surface-hover hover:bg-surface-active"
-              : "border-dashed border-border-subtle text-text-muted hover:border-border hover:bg-surface-hover"
-          }`}
-          aria-label="Change note icon"
-        >
-          {icon || (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="h-4 w-4 opacity-40"
-              aria-hidden
-            >
-              <path d="M10 2a.75.75 0 0 1 .75.75v6.5h6.5a.75.75 0 0 1 0 1.5h-6.5v6.5a.75.75 0 0 1-1.5 0v-6.5h-6.5a.75.75 0 0 1 0-1.5h6.5v-6.5A.75.75 0 0 1 10 2Z" />
-            </svg>
+    useImperativeHandle(ref, () => ({
+      focus() {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      },
+    }));
+
+    return (
+      <div className="relative flex items-start gap-2">
+        <div className="relative mt-1 shrink-0">
+          <button
+            type="button"
+            title="Set note icon"
+            onClick={() => setPickerOpen((v) => !v)}
+            className={`flex h-9 w-9 items-center justify-center rounded-lg border text-xl transition-colors ${
+              icon
+                ? "border-border bg-surface-hover hover:bg-surface-active"
+                : "border-dashed border-border-subtle text-text-muted hover:border-border hover:bg-surface-hover"
+            }`}
+            aria-label="Change note icon"
+          >
+            {icon || (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="h-4 w-4 opacity-40"
+                aria-hidden
+              >
+                <path d="M10 2a.75.75 0 0 1 .75.75v6.5h6.5a.75.75 0 0 1 0 1.5h-6.5v6.5a.75.75 0 0 1-1.5 0v-6.5h-6.5a.75.75 0 0 1 0-1.5h6.5v-6.5A.75.75 0 0 1 10 2Z" />
+              </svg>
+            )}
+          </button>
+          {pickerOpen && (
+            <EmojiPicker
+              current={icon}
+              onPick={onIconChange}
+              onClose={() => setPickerOpen(false)}
+            />
           )}
-        </button>
-        {pickerOpen && (
-          <EmojiPicker
-            current={icon}
-            onPick={onIconChange}
-            onClose={() => setPickerOpen(false)}
-          />
-        )}
+        </div>
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Untitled"
+          className="min-w-0 flex-1 border-0 bg-transparent text-3xl font-bold text-text-primary outline-none placeholder:text-text-muted"
+        />
       </div>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Untitled"
-        className="min-w-0 flex-1 border-0 bg-transparent text-3xl font-bold text-text-primary outline-none placeholder:text-text-muted"
-      />
-    </div>
-  );
-}
+    );
+  },
+);
