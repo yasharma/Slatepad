@@ -84,9 +84,9 @@ export function Sidebar({
 
   return (
     <aside className="flex h-full w-[240px] shrink-0 flex-col border-r border-border bg-sidebar-bg">
-      {/* Traffic-light spacer + drag region — macOS puts the ⬤⬤⬤ buttons here */}
+      {/* Traffic-light spacer + drag region — macOS ⬤⬤⬤ sit at ~y:7, need ~28px */}
       <div
-        className="no-print h-[52px] w-full shrink-0 select-none"
+        className="no-print h-[28px] w-full shrink-0 select-none"
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       />
 

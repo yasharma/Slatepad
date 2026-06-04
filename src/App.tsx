@@ -236,11 +236,20 @@ function App() {
         onEmptyTrash={() => setEmptyArchiveOpen(true)}
       />
 
-      <main className="flex min-w-0 flex-1 flex-col pt-[52px]">
+      <main className="flex min-w-0 flex-1 flex-col">
         {activeNote && activeContent ? (
           <div className="flex h-full flex-col overflow-y-auto">
-            {/* Top bar: save status + three-dot menu */}
-            <div className="no-print flex shrink-0 items-center justify-between border-b border-border-subtle px-8 py-2">
+            {/* Top bar: blends with sidebar colour strip, then save status + menu */}
+            <div
+              className="no-print flex shrink-0 flex-col border-b border-border-subtle bg-sidebar-bg"
+              style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+            >
+              {/* traffic-light spacer row — same height as sidebar's drag strip */}
+              <div className="h-[28px] w-full" />
+              <div
+                className="flex items-center justify-between px-8 py-2"
+                style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+              >
               <span className="text-xs text-text-muted">
                 {saveStatus === "saving"
                   ? "Saving…"
@@ -269,6 +278,7 @@ function App() {
                 }
                 onRestore={isArchivedNote ? () => void restoreNote() : undefined}
               />
+              </div>
             </div>
 
             {/* Note content */}
