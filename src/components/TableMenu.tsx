@@ -29,62 +29,37 @@ function MenuButton({
 }
 
 export function TableMenu({ editor }: TableMenuProps) {
-  if (!editor) {
-    return null;
-  }
+  if (!editor) return null;
 
   return (
     <BubbleMenu
       editor={editor}
       pluginKey="tableMenu"
-      shouldShow={({ editor: ed, state }) =>
-        ed.isEditable && ed.isActive("table") && state.selection.empty
-      }
+      shouldShow={({ editor: ed }) => ed.isEditable && ed.isActive("table")}
       options={{ placement: "top" }}
       className="table-menu"
     >
-      <MenuButton
-        title="Add row above"
-        onClick={() => editor.chain().focus().addRowBefore().run()}
-      >
+      <MenuButton title="Add row above" onClick={() => editor.chain().focus().addRowBefore().run()}>
         ↑ Row
       </MenuButton>
-      <MenuButton
-        title="Add row below"
-        onClick={() => editor.chain().focus().addRowAfter().run()}
-      >
+      <MenuButton title="Add row below" onClick={() => editor.chain().focus().addRowAfter().run()}>
         ↓ Row
       </MenuButton>
-      <MenuButton
-        title="Delete row"
-        onClick={() => editor.chain().focus().deleteRow().run()}
-      >
+      <MenuButton title="Delete row" onClick={() => editor.chain().focus().deleteRow().run()}>
         − Row
       </MenuButton>
       <span className="table-menu-divider" />
-      <MenuButton
-        title="Add column left"
-        onClick={() => editor.chain().focus().addColumnBefore().run()}
-      >
+      <MenuButton title="Add column left" onClick={() => editor.chain().focus().addColumnBefore().run()}>
         ← Col
       </MenuButton>
-      <MenuButton
-        title="Add column right"
-        onClick={() => editor.chain().focus().addColumnAfter().run()}
-      >
+      <MenuButton title="Add column right" onClick={() => editor.chain().focus().addColumnAfter().run()}>
         → Col
       </MenuButton>
-      <MenuButton
-        title="Delete column"
-        onClick={() => editor.chain().focus().deleteColumn().run()}
-      >
+      <MenuButton title="Delete column" onClick={() => editor.chain().focus().deleteColumn().run()}>
         − Col
       </MenuButton>
       <span className="table-menu-divider" />
-      <MenuButton
-        title="Toggle header row"
-        onClick={() => editor.chain().focus().toggleHeaderRow().run()}
-      >
+      <MenuButton title="Toggle header row" onClick={() => editor.chain().focus().toggleHeaderRow().run()}>
         Header
       </MenuButton>
       <MenuButton

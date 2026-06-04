@@ -18,23 +18,11 @@ const MD_PATTERNS = [
 ];
 
 function looksLikeMarkdown(text: string): boolean {
-  if (!text || text.length < 2) {
-    return false;
-  }
-  let hits = 0;
   for (const re of MD_PATTERNS) {
-    if (re.test(text)) {
-      hits += 1;
-      if (hits >= 1) {
-        // Single strong marker is enough; tables, code fences, headings, lists.
-        return true;
-      }
-    }
+    if (re.test(text)) return true;
   }
   return false;
 }
-
-marked.setOptions({ gfm: true, breaks: false });
 
 export const MarkdownPasteExtension = Extension.create({
   name: "markdownPaste",
@@ -47,21 +35,16 @@ export const MarkdownPasteExtension = Extension.create({
         props: {
           handlePaste(_view, event) {
             const clipboard = event.clipboardData;
-            if (!clipboard) {
-              return false;
-            }
+            if (!clipboard) return false;
 
+            // If rich HTML is already on the clipboard, let TipTap handle it
             const html = clipboard.getData("text/html");
-            if (html && html.trim().length > 0) {
-              return false;
-            }
+            if (html && html.trim().length > 0) return false;
 
             const text = clipboard.getData("text/plain");
-            if (!text || !looksLikeMarkdown(text)) {
-              return false;
-            }
+            if (!text || !looksLikeMarkdown(text)) return false;
 
-            const rendered = marked.parse(text, { async: false }) as string;
+            const rendered = marked.parse(text) as string;
             editor.commands.insertContent(rendered);
             event.preventDefault();
             return true;
