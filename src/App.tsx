@@ -213,12 +213,12 @@ function App() {
 
       {/* ── Unified full-width top bar ── */}
       <header
-        className="no-print flex shrink-0 items-stretch border-b border-border bg-sidebar-bg"
+        className="no-print flex shrink-0 items-stretch border-b border-border"
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       >
         {/* Sidebar column: traffic-light space + icon controls */}
         <div
-          className="flex w-[240px] shrink-0 flex-col justify-end border-r border-border"
+          className="flex w-[240px] shrink-0 flex-col justify-end border-r border-border bg-sidebar-bg"
         >
           {/* Row that clears macOS traffic lights (~28 px tall) */}
           <div className="h-[28px]" />
@@ -264,9 +264,9 @@ function App() {
           </div>
         </div>
 
-        {/* Note column: save status + three-dot menu */}
+        {/* Note column: same bg as note content so it blends seamlessly */}
         <div
-          className="flex min-w-0 flex-1 items-end justify-between px-8 pb-2"
+          className="flex min-w-0 flex-1 items-end justify-between bg-app-bg px-8 pb-2"
           style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
         >
           <span className="text-xs text-text-muted">

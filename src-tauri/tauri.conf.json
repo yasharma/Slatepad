@@ -18,7 +18,8 @@
         "minWidth": 800,
         "minHeight": 500,
         "titleBarStyle": "Transparent",
-        "hiddenTitle": true
+        "hiddenTitle": true,
+        "backgroundColor": "#fbfbfa"
       }
     ],
     "security": {
