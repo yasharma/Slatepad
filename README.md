@@ -41,14 +41,49 @@
 
 ## Install (macOS)
 
-Install via [Homebrew](https://brew.sh/) from the [yasharma/tap](https://github.com/yasharma/homebrew-tap) tap:
+### Option 1 — Homebrew (recommended)
 
 ```bash
 brew tap yasharma/tap
 brew install --cask slatepad
+
+# One-time: allow the unsigned app through Gatekeeper
+xattr -dr com.apple.quarantine /Applications/Slatepad.app
+
+open /Applications/Slatepad.app
 ```
 
-Requires a published [GitHub release](https://github.com/yasharma/Slatepad/releases) with matching DMG assets and up-to-date checksums in the tap cask.
+### Option 2 — Download the DMG
+
+Grab the right installer from the [latest release](https://github.com/yasharma/Slatepad/releases/latest):
+
+- **Apple Silicon (M1/M2/M3/M4):** `Slatepad_<version>_aarch64.dmg`
+- **Intel Mac:** `Slatepad_<version>_x64.dmg`
+
+Open the DMG, drag **Slatepad.app** to `/Applications`, then run the same Gatekeeper bypass:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Slatepad.app
+```
+
+### Why the `xattr` step?
+
+Slatepad isn't signed with an Apple Developer certificate yet, so macOS Gatekeeper will say _"Slatepad is damaged and can't be opened"_ on first launch. The `xattr` command strips the quarantine flag macOS automatically attaches to anything downloaded from the internet. It's a **one-time** step per install — after that the app launches normally.
+
+### Upgrading
+
+```bash
+brew update
+brew upgrade --cask slatepad
+xattr -dr com.apple.quarantine /Applications/Slatepad.app   # re-run after each upgrade
+```
+
+### Uninstall
+
+```bash
+brew uninstall --cask slatepad             # keep notes
+brew uninstall --cask --zap slatepad       # also delete ~/Library/Application Support/com.ysharma.slatepad
+```
 
 ## Prerequisites
 
@@ -84,6 +119,8 @@ Notes are stored in **`notes.db`** (SQLite):
 | OS | Path |
 |----|------|
 | macOS | `~/Library/Application Support/com.ysharma.slatepad/notes.db` |
+
+Back up that one file and you've backed up everything.
 
 **Upgrading from local-plus:** the app identifier changed from `com.ysharma.local-plus` to `com.ysharma.slatepad`, so macOS treats this as a new app. Your old database remains at `~/Library/Application Support/com.ysharma.local-plus/notes.db` but is **not** migrated automatically — copy `notes.db` into the new folder if you want to keep existing notes.
 
