@@ -7,8 +7,8 @@ from pathlib import Path
 
 SIZE = 1024
 BG = (0x37, 0x35, 0x2F)  # Notion-like slate
-FG = (0xFF, 0xFF, 0xFF)
-CORNER_RADIUS = 180  # subtle app-icon rounding
+FG = (0xF7, 0xF6, 0xF3)  # off-white
+CORNER_RADIUS = 224  # macOS-style rounded square (~22%)
 
 
 def inside_rounded_rect(x, y, w, h, r):
@@ -33,7 +33,7 @@ def dist_to_segment(px, py, x1, y1, x2, y2):
     return math.hypot(px - proj_x, py - proj_y)
 
 
-def dist_to_bezier(px, py, p0, p1, p2, p3, steps=32):
+def dist_to_bezier(px, py, p0, p1, p2, p3, steps=40):
     best = float("inf")
     prev = p0
     for i in range(1, steps + 1):
@@ -47,39 +47,53 @@ def dist_to_bezier(px, py, p0, p1, p2, p3, steps=32):
     return best
 
 
+def tile_color(x, y):
+    """Subtle vertical gradient + soft top highlight for depth."""
+    t = y / (SIZE - 1)
+    r = int(BG[0] + (0x2E - BG[0]) * t * 0.35)
+    g = int(BG[1] + (0x2C - BG[1]) * t * 0.35)
+    b = int(BG[2] + (0x26 - BG[2]) * t * 0.35)
+    # faint top-left sheen
+    sheen = max(0.0, 1.0 - (x + y * 1.2) / (SIZE * 1.4)) * 0.06
+    r = min(255, int(r + 255 * sheen))
+    g = min(255, int(g + 255 * sheen))
+    b = min(255, int(b + 255 * sheen))
+    return (r, g, b, 255)
+
+
 def draw_s(img, cx, cy, scale):
-    """Minimal geometric S from two arcs + connector."""
-    stroke = 92 * scale
-    # Upper arc (opens right)
+    """Bold geometric S — two mirrored arcs with a short diagonal bridge."""
+    stroke = 108 * scale
+    half = stroke / 2
+
     upper = [
-        (cx + 120 * scale, cy - 180 * scale),
-        (cx + 260 * scale, cy - 260 * scale),
-        (cx - 40 * scale, cy - 260 * scale),
-        (cx - 120 * scale, cy - 180 * scale),
+        (cx + 118 * scale, cy - 168 * scale),
+        (cx + 248 * scale, cy - 248 * scale),
+        (cx - 52 * scale, cy - 248 * scale),
+        (cx - 118 * scale, cy - 168 * scale),
     ]
-    # Lower arc (opens left)
     lower = [
-        (cx - 120 * scale, cy + 180 * scale),
-        (cx - 260 * scale, cy + 260 * scale),
-        (cx + 40 * scale, cy + 260 * scale),
-        (cx + 120 * scale, cy + 180 * scale),
+        (cx - 118 * scale, cy + 168 * scale),
+        (cx - 248 * scale, cy + 248 * scale),
+        (cx + 52 * scale, cy + 248 * scale),
+        (cx + 118 * scale, cy + 168 * scale),
     ]
-    # Vertical connector
-    conn = [
-        (cx - 20 * scale, cy - 40 * scale),
-        (cx - 20 * scale, cy + 40 * scale),
+    bridge = [
+        (cx - 8 * scale, cy - 52 * scale),
+        (cx + 8 * scale, cy + 52 * scale),
     ]
-    curves = [upper, lower]
+
     for y in range(SIZE):
         for x in range(SIZE):
             if img[y][x][3] == 0:
                 continue
-            d = min(dist_to_bezier(x, y, *upper), dist_to_bezier(x, y, *lower))
-            d = min(d, dist_to_segment(x, y, conn[0][0], conn[0][1], conn[1][0], conn[1][1]))
-            if d <= stroke / 2:
-                alpha = min(255, int(255 * (1 - max(0, d - stroke / 2 + 1))))
-                if alpha > 0:
-                    img[y][x] = (*FG, alpha)
+            d = min(
+                dist_to_bezier(x, y, *upper),
+                dist_to_bezier(x, y, *lower),
+                dist_to_segment(x, y, bridge[0][0], bridge[0][1], bridge[1][0], bridge[1][1]),
+            )
+            if d <= half:
+                img[y][x] = (*FG, 255)
 
 
 def write_png(path, img):
@@ -108,25 +122,12 @@ def main():
         row = []
         for x in range(SIZE):
             if inside_rounded_rect(x, y, SIZE, SIZE, CORNER_RADIUS):
-                row.append((*BG, 255))
+                row.append(tile_color(x, y))
             else:
                 row.append((0, 0, 0, 0))
         img.append(row)
 
     draw_s(img, SIZE / 2, SIZE / 2, 1.0)
-
-    # Subtle page fold accent (top-right corner triangle)
-    fold_size = 140
-    for y in range(fold_size):
-        for x in range(fold_size):
-            if x + y < fold_size - 20:
-                px, py = SIZE - fold_size + x, y + 40
-                if 0 <= px < SIZE and 0 <= py < SIZE and img[py][px][3]:
-                    blend = 0.12
-                    r = int(BG[0] * (1 - blend) + 255 * blend)
-                    g = int(BG[1] * (1 - blend) + 255 * blend)
-                    b = int(BG[2] * (1 - blend) + 255 * blend)
-                    img[py][px] = (r, g, b, 255)
 
     write_png(out, img)
     print(f"Wrote {out}")

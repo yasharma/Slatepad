@@ -1,6 +1,6 @@
 [package]
 name = "slatepad"
-version = "0.1.1"
+version = "0.1.2"
 description = "Slatepad — local-first offline notes"
 authors = ["you"]
 edition = "2021"
