@@ -69,10 +69,10 @@ export function Sidebar({
             </button>
             <button
               type="button"
-              title="Preferences"
+              title="Settings"
               onClick={onOpenPreferences}
               className="rounded px-1.5 py-0.5 text-xs text-text-muted hover:bg-surface-hover hover:text-text-secondary"
-              aria-label="Open preferences"
+              aria-label="Open settings"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -91,9 +91,6 @@ export function Sidebar({
             </button>
           </div>
         </div>
-        <p className="mt-0.5 text-xs text-text-secondary">
-          Offline · local only
-        </p>
         {!isArchived && (
           <button
             type="button"

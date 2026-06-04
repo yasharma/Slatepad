@@ -40,13 +40,13 @@ export function PreferencesDialog({
             id="preferences-title"
             className="text-base font-semibold text-text-primary"
           >
-            Preferences
+            Settings
           </h2>
           <button
             type="button"
             onClick={onClose}
             className="rounded px-1.5 py-0.5 text-sm text-text-muted hover:bg-surface-hover hover:text-text-secondary"
-            aria-label="Close preferences"
+            aria-label="Close settings"
           >
             ✕
           </button>
