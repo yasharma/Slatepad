@@ -39,6 +39,17 @@
 - [TipTap](https://tiptap.dev/) — rich text editor
 - SQLite via [`tauri-plugin-sql`](https://github.com/tauri-apps/plugins-workspace)
 
+## Install (macOS)
+
+Install via [Homebrew](https://brew.sh/) from the [yasharma/tap](https://github.com/yasharma/homebrew-tap) tap:
+
+```bash
+brew tap yasharma/tap
+brew install --cask slatepad
+```
+
+Requires a published [GitHub release](https://github.com/yasharma/Slatepad/releases) with matching DMG assets and up-to-date checksums in the tap cask.
+
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) 20+
