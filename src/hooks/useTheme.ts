@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export const STORAGE_KEY = "slatepad-theme";
 const LEGACY_STORAGE_KEY = "local-plus-theme";
@@ -49,6 +50,16 @@ export function applyThemeClass(effective: EffectiveTheme): void {
   document.documentElement.classList.toggle("dark", effective === "dark");
 }
 
+// Keep the native macOS title bar / window backdrop in sync with the
+// in-app theme so the area behind the traffic lights matches our sidebar.
+function applyWindowBackground(effective: EffectiveTheme): void {
+  // Match --sidebar-bg from globals.css (light: #fbfbfa, dark: #202020)
+  const color = effective === "dark" ? "#202020" : "#fbfbfa";
+  void getCurrentWindow().setBackgroundColor(color).catch(() => {
+    // Not running under Tauri or permission missing — silently ignore.
+  });
+}
+
 export function useTheme() {
   const [preference, setPreferenceState] =
     useState<ThemePreference>(getStoredPreference);
@@ -67,6 +78,7 @@ export function useTheme() {
 
   useEffect(() => {
     applyThemeClass(effectiveTheme);
+    applyWindowBackground(effectiveTheme);
     localStorage.setItem(STORAGE_KEY, preference);
   }, [preference, effectiveTheme]);
 
