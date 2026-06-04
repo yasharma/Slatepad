@@ -50,9 +50,9 @@ export function toggleHighlight(editor: Editor, range?: Range) {
 }
 
 export function insertTable(editor: Editor, range?: Range) {
-  withRange(editor, range)
-    .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-    .run();
+  const chain = editor.chain().focus();
+  if (range) chain.deleteRange(range);
+  chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
 }
 
 export function setLink(editor: Editor, range?: Range) {

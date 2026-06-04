@@ -28,7 +28,7 @@ export const editorExtensions = [
   }),
   Highlight.configure({ HTMLAttributes: { class: "editor-highlight" } }),
   Placeholder.configure({ placeholder: "Start writing… Type / for commands" }),
-  Table.configure({ resizable: true, HTMLAttributes: { class: "editor-table" } }),
+  Table.configure({ resizable: false, HTMLAttributes: { class: "editor-table" } }),
   TableRow,
   TableHeader,
   TableCell,
