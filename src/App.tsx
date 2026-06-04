@@ -220,9 +220,9 @@ function App() {
         <div className="h-[28px] w-full shrink-0 bg-sidebar-bg" />
 
         {/* Row 2: split — sidebar bg on left (icon controls), note bg on right (save + menu) */}
-        <div className="flex items-stretch border-b border-border">
+        <div className="flex items-stretch">
         <div
-          className="flex w-[240px] shrink-0 flex-col justify-end border-r border-border bg-sidebar-bg"
+          className="flex w-[240px] shrink-0 flex-col justify-end bg-sidebar-bg"
         >
           {/* Icon controls */}
           <div
@@ -337,7 +337,7 @@ function App() {
 
             {/* Note content */}
             <div
-              className={`flex flex-1 flex-col overflow-y-auto py-8 ${
+              className={`flex flex-1 flex-col overflow-y-auto pt-3 pb-8 ${
                 fullWidth ? "px-6" : "mx-auto w-full max-w-3xl px-10"
               }`}
             >
