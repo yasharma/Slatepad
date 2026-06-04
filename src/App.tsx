@@ -193,7 +193,7 @@ function App() {
   const isArchivedNote = Boolean(activeNote?.archived_at);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-app-bg">
+    <div className="flex h-screen flex-col overflow-hidden bg-app-bg">
       {error && (
         <div
           role="alert"
@@ -211,6 +211,101 @@ function App() {
         </div>
       )}
 
+      {/* ── Unified full-width top bar ── */}
+      <header
+        className="no-print flex shrink-0 items-stretch border-b border-border bg-sidebar-bg"
+        style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+      >
+        {/* Sidebar column: traffic-light space + icon controls */}
+        <div
+          className="flex w-[240px] shrink-0 flex-col justify-end border-r border-border"
+        >
+          {/* Row that clears macOS traffic lights (~28 px tall) */}
+          <div className="h-[28px]" />
+          {/* Icon controls */}
+          <div
+            className="flex items-center justify-between px-3 pb-2"
+            style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+          >
+            <button
+              type="button"
+              title="New note (⌘N)"
+              onClick={handleCreateNote}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:bg-surface-hover hover:text-text-primary"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden><path d="M10 2a.75.75 0 0 1 .75.75v6.5h6.5a.75.75 0 0 1 0 1.5h-6.5v6.5a.75.75 0 0 1-1.5 0v-6.5h-6.5a.75.75 0 0 1 0-1.5h6.5v-6.5A.75.75 0 0 1 10 2Z" /></svg>
+            </button>
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                title="Search (⌘K)"
+                onClick={() => setQuickSwitcherOpen(true)}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:bg-surface-hover hover:text-text-primary"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden><path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clipRule="evenodd" /></svg>
+              </button>
+              <button
+                type="button"
+                title="Keyboard shortcuts (?)"
+                onClick={() => setHelpOpen(true)}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:bg-surface-hover hover:text-text-primary"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden><path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-3a1 1 0 0 0-.867.5 1 1 0 1 1-1.731-1A3 3 0 0 1 13 10a3.001 3.001 0 0 1-2 2.83V13a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1 1 1 0 1 0 0-2Zm0 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" /></svg>
+              </button>
+              <button
+                type="button"
+                title="Settings"
+                onClick={() => setPreferencesOpen(true)}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:bg-surface-hover hover:text-text-primary"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden><path fillRule="evenodd" d="M8.34 1.804A1 1 0 0 1 9.32 1h1.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l.68 1.178a1 1 0 0 1-.026 1.073l-1.148 1.21a6.964 6.964 0 0 1 0 2.824l1.148 1.21a1 1 0 0 1 .026 1.073l-.68 1.178a1 1 0 0 1-1.186.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.331 1.652a1 1 0 0 1-.98.804H9.32a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-.68-1.178a1 1 0 0 1 .026-1.073l1.148-1.21a6.964 6.964 0 0 1 0-2.824L2.054 6.013a1 1 0 0 1-.026-1.073l.68-1.178a1 1 0 0 1 1.186-.447l1.598.54A6.993 6.993 0 0 1 8.34 2.804l.331-1.652Z" clipRule="evenodd" /><path d="M10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Note column: save status + three-dot menu */}
+        <div
+          className="flex min-w-0 flex-1 items-end justify-between px-8 pb-2"
+          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+        >
+          <span className="text-xs text-text-muted">
+            {activeNote
+              ? saveStatus === "saving"
+                ? "Saving…"
+                : saveStatus === "saved"
+                  ? "Saved"
+                  : ""
+              : ""}
+          </span>
+          {activeNote && activeContent && (
+            <NoteMenu
+              pinned={Boolean(activeNote.pinned)}
+              fullWidth={fullWidth}
+              isArchived={isArchivedNote}
+              exportStatus={exportStatus}
+              onRename={() => {
+                requestAnimationFrame(() => titleRef.current?.focus());
+              }}
+              onTogglePin={() => void togglePin()}
+              onDuplicate={() => void duplicateNote()}
+              onCopyMarkdown={() => void handleExport()}
+              onExportPdf={() => void handlePrintPdf()}
+              onToggleWidth={() => setFullWidth((v) => !v)}
+              onArchive={() => setArchiveOpen(true)}
+              onDelete={() =>
+                isArchivedNote
+                  ? setDeleteArchivedOpen(true)
+                  : setDeleteDirectOpen(true)
+              }
+              onRestore={isArchivedNote ? () => void restoreNote() : undefined}
+            />
+          )}
+        </div>
+      </header>
+
+      {/* ── Body: sidebar + note area ── */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
       <Sidebar
         notes={notes}
         archivedNotes={archivedNotes}
@@ -218,7 +313,6 @@ function App() {
         activeNoteId={activeNote?.id ?? null}
         saveStatus={saveStatus}
         onSelectNote={(id) => void selectNote(id)}
-        onCreateNote={handleCreateNote}
         onSetView={(view) => void setSidebarView(view)}
         onTogglePin={(id) => void handleTogglePinFromSidebar(id)}
         onArchiveNote={handleSidebarArchive}
@@ -231,55 +325,12 @@ function App() {
           await selectNote(id);
           void handlePrintPdf();
         }}
-        onOpenPreferences={() => setPreferencesOpen(true)}
-        onShowHelp={() => setHelpOpen(true)}
         onEmptyTrash={() => setEmptyArchiveOpen(true)}
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
         {activeNote && activeContent ? (
           <div className="flex h-full flex-col overflow-y-auto">
-            {/* Top bar: blends with sidebar colour strip, then save status + menu */}
-            <div
-              className="no-print flex shrink-0 flex-col border-b border-border-subtle bg-sidebar-bg"
-              style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
-            >
-              {/* traffic-light spacer row — same height as sidebar's drag strip */}
-              <div className="h-[28px] w-full" />
-              <div
-                className="flex items-center justify-between px-8 py-2"
-                style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-              >
-              <span className="text-xs text-text-muted">
-                {saveStatus === "saving"
-                  ? "Saving…"
-                  : saveStatus === "saved"
-                    ? "Saved"
-                    : ""}
-              </span>
-              <NoteMenu
-                pinned={Boolean(activeNote.pinned)}
-                fullWidth={fullWidth}
-                isArchived={isArchivedNote}
-                exportStatus={exportStatus}
-                onRename={() => {
-                  requestAnimationFrame(() => titleRef.current?.focus());
-                }}
-                onTogglePin={() => void togglePin()}
-                onDuplicate={() => void duplicateNote()}
-                onCopyMarkdown={() => void handleExport()}
-                onExportPdf={() => void handlePrintPdf()}
-                onToggleWidth={() => setFullWidth((v) => !v)}
-                onArchive={() => setArchiveOpen(true)}
-                onDelete={() =>
-                  isArchivedNote
-                    ? setDeleteArchivedOpen(true)
-                    : setDeleteDirectOpen(true)
-                }
-                onRestore={isArchivedNote ? () => void restoreNote() : undefined}
-              />
-              </div>
-            </div>
 
             {/* Note content */}
             <div
@@ -319,6 +370,7 @@ function App() {
           </div>
         )}
       </main>
+      </div>{/* end body flex row */}
 
       <QuickSwitcher
         open={quickSwitcherOpen}
