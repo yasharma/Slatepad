@@ -223,12 +223,20 @@ function App() {
         onTogglePin={(id) => void handleTogglePinFromSidebar(id)}
         onArchiveNote={handleSidebarArchive}
         onDeleteNote={handleSidebarDelete}
+        onDuplicateNote={async (id) => {
+          await selectNote(id);
+          void duplicateNote();
+        }}
+        onExportPdfNote={async (id) => {
+          await selectNote(id);
+          void handlePrintPdf();
+        }}
         onOpenPreferences={() => setPreferencesOpen(true)}
         onShowHelp={() => setHelpOpen(true)}
         onEmptyTrash={() => setEmptyArchiveOpen(true)}
       />
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="flex min-w-0 flex-1 flex-col pt-[52px]">
         {activeNote && activeContent ? (
           <div className="flex h-full flex-col overflow-y-auto">
             {/* Top bar: save status + three-dot menu */}
