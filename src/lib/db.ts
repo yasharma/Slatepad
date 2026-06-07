@@ -1,12 +1,12 @@
 import Database from "@tauri-apps/plugin-sql";
 import { v4 as uuidv4 } from "uuid";
-import type { Note, NoteSummary } from "./types";
-import { EMPTY_DOC_STRING } from "./types";
+import type { Folder, Note, NoteSummary } from "./types";
+import { getTemplate } from "./templates";
 
 const DB_URL = "sqlite:notes.db";
 
 const NOTE_FIELDS =
-  "id, title, content, created_at, updated_at, pinned, tags, icon, archived_at";
+  "id, title, content, created_at, updated_at, pinned, tags, icon, folder_id, archived_at";
 
 let dbPromise: Promise<Database> | null = null;
 
@@ -23,41 +23,99 @@ function mapNote(row: Note): Note {
     pinned: row.pinned ?? 0,
     tags: row.tags ?? "",
     icon: row.icon ?? "",
+    folder_id: row.folder_id ?? null,
     archived_at: row.archived_at ?? null,
   };
 }
 
-export async function listNotes(): Promise<NoteSummary[]> {
-  const db = await getDb();
-  const rows = await db.select<NoteSummary[]>(
-    `SELECT id, title, content, created_at, updated_at, pinned, tags, icon, archived_at
-     FROM notes
-     WHERE archived_at IS NULL
-     ORDER BY pinned DESC, updated_at DESC`,
-  );
-  return rows.map((row) => ({
+function mapSummary(row: NoteSummary): NoteSummary {
+  return {
     ...row,
     pinned: row.pinned ?? 0,
     tags: row.tags ?? "",
     icon: row.icon ?? "",
-    archived_at: null,
-  }));
+    folder_id: row.folder_id ?? null,
+    archived_at: row.archived_at ?? null,
+  };
+}
+
+export async function listFolders(): Promise<Folder[]> {
+  const db = await getDb();
+  return db.select<Folder[]>(
+    "SELECT id, name, sort_order, created_at FROM folders ORDER BY sort_order ASC, name ASC",
+  );
+}
+
+export async function createFolder(name: string): Promise<Folder> {
+  const db = await getDb();
+  const now = Date.now();
+  const id = uuidv4();
+  const rows = await db.select<{ max: number | null }[]>(
+    "SELECT MAX(sort_order) as max FROM folders",
+  );
+  const sortOrder = (rows[0]?.max ?? -1) + 1;
+
+  await db.execute(
+    "INSERT INTO folders (id, name, sort_order, created_at) VALUES ($1, $2, $3, $4)",
+    [id, name.trim() || "New folder", sortOrder, now],
+  );
+
+  return { id, name: name.trim() || "New folder", sort_order: sortOrder, created_at: now };
+}
+
+export async function renameFolder(id: string, name: string): Promise<void> {
+  const db = await getDb();
+  await db.execute("UPDATE folders SET name = $1 WHERE id = $2", [
+    name.trim() || "Untitled folder",
+    id,
+  ]);
+}
+
+export async function deleteFolder(id: string): Promise<void> {
+  const db = await getDb();
+  await db.execute("UPDATE notes SET folder_id = NULL WHERE folder_id = $1", [id]);
+  await db.execute("DELETE FROM folders WHERE id = $1", [id]);
+}
+
+export async function moveNoteToFolder(
+  noteId: string,
+  folderId: string | null,
+): Promise<void> {
+  const db = await getDb();
+  const now = Date.now();
+  await db.execute(
+    "UPDATE notes SET folder_id = $1, updated_at = $2 WHERE id = $3",
+    [folderId, now, noteId],
+  );
+}
+
+export async function listNotes(folderId?: string | null): Promise<NoteSummary[]> {
+  const db = await getDb();
+  let sql = `SELECT id, title, content, created_at, updated_at, pinned, tags, icon, folder_id, archived_at
+     FROM notes
+     WHERE archived_at IS NULL`;
+  const params: (string | null)[] = [];
+
+  if (folderId !== undefined && folderId !== null) {
+    sql += " AND folder_id = $1";
+    params.push(folderId);
+  }
+
+  sql += " ORDER BY pinned DESC, updated_at DESC";
+
+  const rows = await db.select<NoteSummary[]>(sql, params);
+  return rows.map((row) => ({ ...mapSummary(row), archived_at: null }));
 }
 
 export async function listArchivedNotes(): Promise<NoteSummary[]> {
   const db = await getDb();
   const rows = await db.select<NoteSummary[]>(
-    `SELECT id, title, content, created_at, updated_at, pinned, tags, icon, archived_at
+    `SELECT id, title, content, created_at, updated_at, pinned, tags, icon, folder_id, archived_at
      FROM notes
      WHERE archived_at IS NOT NULL
      ORDER BY archived_at DESC`,
   );
-  return rows.map((row) => ({
-    ...row,
-    pinned: row.pinned ?? 0,
-    tags: row.tags ?? "",
-    icon: row.icon ?? "",
-  }));
+  return rows.map(mapSummary);
 }
 
 export async function getNote(id: string): Promise<Note | null> {
@@ -70,28 +128,40 @@ export async function getNote(id: string): Promise<Note | null> {
   return row ? mapNote(row) : null;
 }
 
-export async function createNote(): Promise<Note> {
+export async function createNote(options?: {
+  templateId?: string;
+  folderId?: string | null;
+}): Promise<Note> {
+  const template = getTemplate(options?.templateId ?? "blank") ?? getTemplate("blank")!;
   const db = await getDb();
   const now = Date.now();
   const id = uuidv4();
-  const title = "Untitled";
-  const content = EMPTY_DOC_STRING;
 
   await db.execute(
-    `INSERT INTO notes (id, title, content, created_at, updated_at, pinned, tags, icon, archived_at)
-     VALUES ($1, $2, $3, $4, $5, 0, '', '', NULL)`,
-    [id, title, content, now, now],
+    `INSERT INTO notes (id, title, content, created_at, updated_at, pinned, tags, icon, folder_id, archived_at)
+     VALUES ($1, $2, $3, $4, $5, 0, $6, $7, $8, NULL)`,
+    [
+      id,
+      template.title,
+      template.content,
+      now,
+      now,
+      template.tags,
+      template.icon === "📄" ? "" : template.icon,
+      options?.folderId ?? null,
+    ],
   );
 
   return {
     id,
-    title,
-    content,
+    title: template.title,
+    content: template.content,
     created_at: now,
     updated_at: now,
     pinned: 0,
-    tags: "",
-    icon: "",
+    tags: template.tags,
+    icon: template.icon === "📄" ? "" : template.icon,
+    folder_id: options?.folderId ?? null,
     archived_at: null,
   };
 }
@@ -111,9 +181,9 @@ export async function duplicateNote(id: string): Promise<Note> {
       : `${source.title} (copy)`;
 
   await db.execute(
-    `INSERT INTO notes (id, title, content, created_at, updated_at, pinned, tags, icon, archived_at)
-     VALUES ($1, $2, $3, $4, $5, 0, $6, $7, NULL)`,
-    [newId, title, source.content, now, now, source.tags, source.icon],
+    `INSERT INTO notes (id, title, content, created_at, updated_at, pinned, tags, icon, folder_id, archived_at)
+     VALUES ($1, $2, $3, $4, $5, 0, $6, $7, $8, NULL)`,
+    [newId, title, source.content, now, now, source.tags, source.icon, source.folder_id],
   );
 
   return {
@@ -125,6 +195,7 @@ export async function duplicateNote(id: string): Promise<Note> {
     pinned: 0,
     tags: source.tags,
     icon: source.icon,
+    folder_id: source.folder_id,
     archived_at: null,
   };
 }
@@ -137,6 +208,7 @@ export async function updateNote(
     tags?: string;
     pinned?: number;
     icon?: string;
+    folder_id?: string | null;
   },
 ): Promise<void> {
   const db = await getDb();
@@ -164,6 +236,10 @@ export async function updateNote(
     fields.push("icon = $" + (values.length + 1));
     values.push(patch.icon);
   }
+  if (patch.folder_id !== undefined) {
+    fields.push("folder_id = $" + (values.length + 1));
+    values.push(patch.folder_id);
+  }
 
   if (fields.length === 0) {
     return;
@@ -175,7 +251,7 @@ export async function updateNote(
 
   await db.execute(
     `UPDATE notes SET ${fields.join(", ")} WHERE id = $${values.length}`,
-    values as (string | number)[],
+    values as (string | number | null)[],
   );
 }
 
@@ -215,4 +291,9 @@ export async function deleteNotePermanently(id: string): Promise<void> {
 export async function emptyTrash(): Promise<void> {
   const db = await getDb();
   await db.execute("DELETE FROM notes WHERE archived_at IS NOT NULL");
+}
+
+/** Reset cached connection after import (before relaunch). */
+export function resetDbConnection(): void {
+  dbPromise = null;
 }

@@ -4,7 +4,7 @@
 
 :root {
   --app-bg: #ffffff;
-  --sidebar-bg: #fbfbfa;
+  --sidebar-bg: #f5f5f4;
   --text-primary: #37352f;
   --text-secondary: #787774;
   --text-muted: #9b9a97;
@@ -176,6 +176,54 @@
 
 .tiptap p {
   margin: 0.375rem 0;
+}
+
+/* AI chat rendered markdown — compact variant of editor styles */
+.ai-chat-markdown h1 {
+  font-size: 1.125rem;
+  margin: 0.5rem 0 0.375rem;
+}
+
+.ai-chat-markdown h2 {
+  font-size: 1rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.ai-chat-markdown h3 {
+  font-size: 0.9375rem;
+  margin: 0.375rem 0 0.25rem;
+}
+
+.ai-chat-markdown p:first-child,
+.ai-chat-markdown h1:first-child,
+.ai-chat-markdown h2:first-child,
+.ai-chat-markdown h3:first-child {
+  margin-top: 0;
+}
+
+.ai-chat-markdown ul,
+.ai-chat-markdown ol {
+  margin: 0.375rem 0;
+}
+
+.ai-chat-markdown pre {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.ai-chat-markdown a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.tiptap img,
+.tiptap .editor-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.75rem 0;
+  border-radius: 6px;
 }
 
 .tiptap hr {

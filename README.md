@@ -1,30 +1,43 @@
 # Slatepad
 
-**Local-first offline notes** — a desktop app inspired by Notion and AFFiNE. Your notes live in SQLite on your machine: no accounts, no sync, no network calls.
+**Local-first offline notes** — a desktop app inspired by Notion and AFFiNE. Your notes live in SQLite on your machine: no accounts, no sync, no cloud by default.
 
-![Slatepad screenshot](docs/screenshot.png)
+**Website:** [yasharma.github.io/Slatepad](https://yasharma.github.io/Slatepad/)
+
+![Slatepad — note editor with AI assistant](docs/screenshot.png)
 
 ## Features
 
 ### Notes
-- Minimal sidebar with pinned notes, tags, and sort (Modified / Created / A–Z)
+- Sidebar with **folders**, pinned notes, tags, and sort (Modified / Created / A–Z)
+- **Hide sidebar** with `⌘B` for a focused writing view
 - Full-text search via **Quick Switcher** (`⌘K`) — titles, tags, and note content
+- **Note templates** — Blank, Daily Tasks, Meeting Notes
 - Archive (soft delete) with restore and empty archive
 - Direct delete from note menu, sidebar context menu, or `⌘Delete`
 - Auto-save to local SQLite (~500ms debounce)
 - Per-note emoji icon for quick visual identification
 - Duplicate note, copy as Markdown, and **Export PDF** (system print dialog)
+- **Backup / restore** — export or import the full SQLite database from Settings
 
 ### Editor
 - Rich text: bold, italic, strikethrough, headings, lists
 - Todo lists with checkboxes, quotes, code blocks, links, dividers
 - **Tables** — insert via `/table` slash command, edit rows/columns in bubble menu
 - **Markdown** — paste Markdown as rich text; type `# ` / `## ` / `### ` for headings
+- **Image paste** — paste screenshots inline (base64 in note)
 - Insert today's date or timestamp
 - **`/` slash menu** for quick blocks
 - **Bubble menu** on text selection (B, I, strike, link, code)
-- **Find in note** (`⌘F`) with match highlighting; Quick Switcher opens find when you pick a search result
+- **Find in note** (`⌘F`) with match highlighting
 - **Full width / Standard** layout toggle in the note menu
+
+### AI assistant (optional)
+- Right-side **AI chat panel** (`⌘⇧A`) with the open note as context
+- Works with **Ollama**, **LiteLLM**, or any OpenAI-compatible API
+- **Test connection** in Settings → AI before chatting
+- Rendered markdown replies with **Copy** and **Apply to note**
+- See [scripts/AI.md](scripts/AI.md) for setup
 
 ### Shortcuts
 | Shortcut | Action |
@@ -32,6 +45,8 @@
 | `⌘/Ctrl N` | New note |
 | `⌘/Ctrl K` | Quick switcher (search all notes) |
 | `⌘/Ctrl F` | Find within note |
+| `⌘/Ctrl B` | Show / hide sidebar |
+| `⌘/Ctrl ⇧ A` | Toggle AI assistant |
 | `⌘/Ctrl P` | Pin / unpin note |
 | `⌘/Ctrl Backspace` | Archive note |
 | `⌘/Ctrl Delete` | Delete note permanently |
@@ -132,7 +147,7 @@ Notes are stored in **`notes.db`** (SQLite):
 |----|------|
 | macOS | `~/Library/Application Support/com.ysharma.slatepad/notes.db` |
 
-Back up that one file and you've backed up everything.
+Back up that one file and you've backed up everything — or use **Settings → Export backup** for a portable `.db` file.
 
 **Upgrading from local-plus:** the app identifier changed from `com.ysharma.local-plus` to `com.ysharma.slatepad`, so macOS treats this as a new app. Your old database remains at `~/Library/Application Support/com.ysharma.local-plus/notes.db` but is **not** migrated automatically — copy `notes.db` into the new folder if you want to keep existing notes.
 

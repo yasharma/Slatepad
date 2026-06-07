@@ -53,8 +53,8 @@ export function applyThemeClass(effective: EffectiveTheme): void {
 // Keep the native macOS title bar / window backdrop in sync with the
 // in-app theme so the area behind the traffic lights matches our sidebar.
 function applyWindowBackground(effective: EffectiveTheme): void {
-  // Match --sidebar-bg from globals.css (light: #fbfbfa, dark: #202020)
-  const color = effective === "dark" ? "#202020" : "#fbfbfa";
+  // Match --sidebar-bg from globals.css (light: #f5f5f4, dark: #202020)
+  const color = effective === "dark" ? "#202020" : "#f5f5f4";
   void getCurrentWindow().setBackgroundColor(color).catch(() => {
     // Not running under Tauri or permission missing — silently ignore.
   });

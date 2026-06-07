@@ -7,6 +7,13 @@ export const EMPTY_DOC: JSONContent = {
 
 export const EMPTY_DOC_STRING = JSON.stringify(EMPTY_DOC);
 
+export interface Folder {
+  id: string;
+  name: string;
+  sort_order: number;
+  created_at: number;
+}
+
 export interface Note {
   id: string;
   title: string;
@@ -16,6 +23,7 @@ export interface Note {
   pinned: number;
   tags: string;
   icon: string;
+  folder_id: string | null;
   archived_at: number | null;
 }
 
@@ -28,6 +36,7 @@ export interface NoteSummary {
   pinned: number;
   tags: string;
   icon: string;
+  folder_id: string | null;
   archived_at: number | null;
 }
 

@@ -4,7 +4,9 @@ import TaskList from "@tiptap/extension-task-list";
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
 import { Table, TableRow, TableHeader, TableCell } from "@tiptap/extension-table";
+import Image from "@tiptap/extension-image";
 import StarterKit from "@tiptap/starter-kit";
+import { ImagePasteExtension } from "./imagePasteExtension";
 import { MarkdownPasteExtension } from "./markdownPasteExtension";
 import { SlashCommandExtension } from "./slashCommandExtension";
 import { FindExtension } from "./findExtension";
@@ -28,11 +30,17 @@ export const editorExtensions = [
     HTMLAttributes: { class: "editor-link" },
   }),
   Highlight.configure({ HTMLAttributes: { class: "editor-highlight" } }),
+  Image.configure({
+    inline: false,
+    allowBase64: true,
+    HTMLAttributes: { class: "editor-image" },
+  }),
   Placeholder.configure({ placeholder: "Start writing… Type / for commands" }),
   Table.configure({ resizable: false, HTMLAttributes: { class: "editor-table" } }),
   TableRow,
   TableHeader,
   TableCell,
+  ImagePasteExtension,
   MarkdownPasteExtension,
   SlashCommandExtension,
   FindExtension,

@@ -1,10 +1,23 @@
+import { useState } from "react";
 import type { ThemePreference } from "../hooks/useTheme";
+import type { UpdateStatus } from "../hooks/useUpdater";
+import type { AiSettings } from "../lib/aiSettings";
+import { exportDatabaseBackup, importDatabaseBackup } from "../lib/backup";
+import { AiSettingsForm } from "./AiSettingsForm";
 
 interface PreferencesDialogProps {
   open: boolean;
   preference: ThemePreference;
   onPreferenceChange: (preference: ThemePreference) => void;
   onClose: () => void;
+  aiSettings: AiSettings;
+  onAiSettingsChange: (settings: AiSettings) => void;
+  updateStatus: UpdateStatus;
+  updateVersion: string | null;
+  updateError: string | null;
+  upToDateMessage: string | null;
+  onCheckForUpdates: () => void;
+  onDownloadUpdate: () => void;
 }
 
 const themeOptions: { value: ThemePreference; label: string }[] = [
@@ -18,10 +31,50 @@ export function PreferencesDialog({
   preference,
   onPreferenceChange,
   onClose,
+  aiSettings,
+  onAiSettingsChange,
+  updateStatus,
+  updateVersion,
+  updateError,
+  upToDateMessage,
+  onCheckForUpdates,
+  onDownloadUpdate,
 }: PreferencesDialogProps) {
+  const [backupMessage, setBackupMessage] = useState<string | null>(null);
+  const [backupError, setBackupError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
   if (!open) {
     return null;
   }
+
+  const handleExport = async () => {
+    setBusy(true);
+    setBackupMessage(null);
+    setBackupError(null);
+    try {
+      const path = await exportDatabaseBackup();
+      if (path) {
+        setBackupMessage(`Backup saved to ${path}`);
+      }
+    } catch (err) {
+      setBackupError(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleImport = async () => {
+    setBusy(true);
+    setBackupMessage(null);
+    setBackupError(null);
+    try {
+      await importDatabaseBackup();
+    } catch (err) {
+      setBackupError(err instanceof Error ? err.message : "Import failed");
+      setBusy(false);
+    }
+  };
 
   return (
     <div
@@ -29,7 +82,7 @@ export function PreferencesDialog({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-xl border border-border bg-modal-bg p-5 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-border bg-modal-bg p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -83,16 +136,85 @@ export function PreferencesDialog({
                 );
               })}
             </div>
-            <p className="mt-2 text-xs text-text-muted">
-              System follows your device appearance setting.
-            </p>
           </div>
         </section>
 
         <section className="mt-6 border-t border-border-subtle pt-4">
-          <p className="text-xs text-text-muted">
-            More settings coming soon.
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+            AI
+          </h3>
+          <p className="mt-2 text-sm text-text-secondary">
+            Connect to a LiteLLM proxy, Ollama, or any OpenAI-compatible API.
+            See <code className="text-xs">scripts/AI.md</code> for setup.
           </p>
+          <AiSettingsForm settings={aiSettings} onChange={onAiSettingsChange} />
+        </section>
+
+        <section className="mt-6 border-t border-border-subtle pt-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+            Data
+          </h3>
+          <p className="mt-2 text-sm text-text-secondary">
+            Export or import a backup of all your notes and folders.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void handleExport()}
+              className="btn-primary px-3 py-1.5 text-sm disabled:opacity-50"
+            >
+              Export backup
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void handleImport()}
+              className="rounded-md border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary disabled:opacity-50"
+            >
+              Import backup
+            </button>
+          </div>
+          {backupMessage && (
+            <p className="mt-2 text-xs text-green-600 dark:text-green-400">{backupMessage}</p>
+          )}
+          {backupError && (
+            <p className="mt-2 text-xs text-red-500">{backupError}</p>
+          )}
+        </section>
+
+        <section className="mt-6 border-t border-border-subtle pt-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+            Updates
+          </h3>
+          <p className="mt-2 text-sm text-text-secondary">
+            Check for app updates from GitHub Releases.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={updateStatus === "checking" || updateStatus === "downloading"}
+              onClick={onCheckForUpdates}
+              className="rounded-md border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary disabled:opacity-50"
+            >
+              {updateStatus === "checking" ? "Checking…" : "Check for updates"}
+            </button>
+            {updateStatus === "available" && updateVersion && (
+              <button
+                type="button"
+                onClick={onDownloadUpdate}
+                className="btn-primary px-3 py-1.5 text-sm"
+              >
+                Download v{updateVersion}
+              </button>
+            )}
+          </div>
+          {upToDateMessage && (
+            <p className="mt-2 text-xs text-text-muted">{upToDateMessage}</p>
+          )}
+          {updateError && (
+            <p className="mt-2 text-xs text-text-muted">{updateError}</p>
+          )}
         </section>
       </div>
     </div>

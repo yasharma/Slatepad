@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AiChatPanel, AiChatToggle } from "./components/AiChatPanel";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { KeyboardHelp } from "./components/KeyboardHelp";
+import { NewNoteMenu } from "./components/NewNoteMenu";
 import { PreferencesDialog } from "./components/PreferencesDialog";
 import { NoteMenu } from "./components/NoteMenu";
 import { NoteEditor } from "./components/NoteEditor";
@@ -9,9 +11,14 @@ import { Sidebar } from "./components/Sidebar";
 import { TagsInput } from "./components/TagsInput";
 import { TitleInput, type TitleInputHandle } from "./components/TitleInput";
 import { copyMarkdownToClipboard } from "./lib/exportMarkdown";
+import { appendMarkdownToContent } from "./lib/importMarkdown";
 import { openPrintPreview } from "./lib/printNote";
 import { useNotes } from "./hooks/useNotes";
+import { useAiChat } from "./hooks/useAiChat";
 import { useTheme } from "./hooks/useTheme";
+import { useUpdater } from "./hooks/useUpdater";
+
+const SIDEBAR_HIDDEN_KEY = "slatepad-sidebar-hidden";
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
@@ -25,11 +32,36 @@ function isTypingTarget(target: EventTarget | null): boolean {
   );
 }
 
+function getStoredSidebarHidden(): boolean {
+  return localStorage.getItem(SIDEBAR_HIDDEN_KEY) === "true";
+}
+
+function SidebarToggleIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4"
+      aria-hidden
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M9 3v18" />
+    </svg>
+  );
+}
+
 function App() {
   const titleRef = useRef<TitleInputHandle>(null);
   const {
     notes,
     archivedNotes,
+    folders,
+    activeFolderId,
     sidebarView,
     setSidebarView,
     activeNote,
@@ -38,7 +70,12 @@ function App() {
     error,
     saveStatus,
     selectNote,
+    selectFolder,
     createNote,
+    createFolder,
+    renameFolder,
+    deleteFolder,
+    moveNoteToFolder,
     archiveNote,
     restoreNote,
     deleteArchivedPermanently,
@@ -56,6 +93,27 @@ function App() {
   } = useNotes();
 
   const { preference, setThemePreference } = useTheme();
+  const {
+    status: updateStatus,
+    version: updateVersion,
+    error: updateError,
+    upToDateMessage,
+    checkForUpdates,
+    downloadAndInstall,
+  } = useUpdater();
+  const {
+    open: aiChatOpen,
+    toggleOpen: toggleAiChat,
+    messages: aiMessages,
+    settings: aiSettings,
+    setSettings: setAiSettings,
+    loading: aiLoading,
+    error: aiError,
+    setError: setAiError,
+    sendMessage: sendAiMessage,
+    clearMessages: clearAiMessages,
+    cancelRequest: cancelAiRequest,
+  } = useAiChat(activeNote);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [emptyArchiveOpen, setEmptyArchiveOpen] = useState(false);
@@ -67,10 +125,22 @@ function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [exportStatus, setExportStatus] = useState<"idle" | "copied">("idle");
   const [fullWidth, setFullWidth] = useState(false);
+  const [sidebarHidden, setSidebarHidden] = useState(getStoredSidebarHidden);
 
-  const handleCreateNote = useCallback(() => {
-    void createNote();
-  }, [createNote]);
+  const toggleSidebar = useCallback(() => {
+    setSidebarHidden((hidden) => {
+      const next = !hidden;
+      localStorage.setItem(SIDEBAR_HIDDEN_KEY, String(next));
+      return next;
+    });
+  }, []);
+
+  const handleCreateNote = useCallback(
+    (templateId?: string) => {
+      void createNote(templateId);
+    },
+    [createNote],
+  );
 
   const handleArchiveConfirm = useCallback(() => {
     setArchiveOpen(false);
@@ -125,6 +195,16 @@ function App() {
     }
   }, [activeNote, clearError]);
 
+  const handleApplyAiContent = useCallback(
+    (markdown: string) => {
+      if (!activeNote) {
+        return;
+      }
+      updateContent(appendMarkdownToContent(activeNote.content, markdown));
+    },
+    [activeNote, updateContent],
+  );
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
@@ -165,6 +245,18 @@ function App() {
         return;
       }
 
+      if (mod && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        toggleSidebar();
+        return;
+      }
+
+      if (mod && e.shiftKey && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        toggleAiChat();
+        return;
+      }
+
       if (e.key === "?" && !isTypingTarget(e.target)) {
         e.preventDefault();
         setHelpOpen(true);
@@ -172,7 +264,7 @@ function App() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [createNote, activeNote, togglePin]);
+  }, [createNote, activeNote, togglePin, toggleSidebar, toggleAiChat]);
 
   useEffect(() => {
     const onBeforeUnload = () => {
@@ -193,7 +285,9 @@ function App() {
   const isArchivedNote = Boolean(activeNote?.archived_at);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-app-bg">
+    <div className="flex h-screen overflow-hidden bg-app-bg">
+      {/* Left + center column */}
+      <div className="flex min-w-0 flex-1 flex-col">
       {error && (
         <div
           role="alert"
@@ -211,16 +305,19 @@ function App() {
         </div>
       )}
 
-      {/* ── Unified top bar (two rows) ── */}
+      {/* ── Unified top bar (left + center only) ── */}
       <header
         className="no-print flex shrink-0 flex-col"
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       >
-        {/* Row 1: full-width strip behind macOS traffic lights — ALL sidebar color */}
-        <div className="h-[28px] w-full shrink-0 bg-sidebar-bg" />
+        {/* Row 1: full-width strip behind macOS traffic lights */}
+        <div
+          className={`h-[28px] w-full shrink-0 ${sidebarHidden ? "bg-app-bg" : "bg-sidebar-bg"}`}
+        />
 
         {/* Row 2: split — sidebar bg on left (icon controls), note bg on right (save + menu) */}
         <div className="flex items-stretch">
+        {!sidebarHidden && (
         <div
           className="flex w-[240px] shrink-0 flex-col justify-end bg-sidebar-bg"
         >
@@ -229,14 +326,7 @@ function App() {
             className="flex items-center justify-between px-3 pb-1"
             style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
           >
-            <button
-              type="button"
-              title="New note (⌘N)"
-              onClick={handleCreateNote}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:bg-surface-hover hover:text-text-primary"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden><path d="M10 2a.75.75 0 0 1 .75.75v6.5h6.5a.75.75 0 0 1 0 1.5h-6.5v6.5a.75.75 0 0 1-1.5 0v-6.5h-6.5a.75.75 0 0 1 0-1.5h6.5v-6.5A.75.75 0 0 1 10 2Z" /></svg>
-            </button>
+            <NewNoteMenu onCreate={handleCreateNote} />
             <div className="flex items-center gap-0.5">
               <button
                 type="button"
@@ -253,6 +343,15 @@ function App() {
                 className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:bg-surface-hover hover:text-text-primary"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden><path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-3a1 1 0 0 0-.867.5 1 1 0 1 1-1.731-1A3 3 0 0 1 13 10a3.001 3.001 0 0 1-2 2.83V13a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1 1 1 0 1 0 0-2Zm0 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" /></svg>
+              </button>
+              <button
+                type="button"
+                title="Hide Sidebar (⌘B)"
+                onClick={toggleSidebar}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:bg-surface-hover hover:text-text-primary"
+                aria-label="Hide Sidebar"
+              >
+                <SidebarToggleIcon />
               </button>
               <button
                 type="button"
@@ -279,13 +378,26 @@ function App() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Note column: same bg as note content so it blends seamlessly */}
         <div
           className="flex min-w-0 flex-1 items-end justify-between bg-app-bg px-8 pb-1"
           style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
         >
-          <span className="text-xs text-text-muted">
+          <div className="flex items-center gap-2">
+            {sidebarHidden && (
+              <button
+                type="button"
+                title="Show Sidebar (⌘B)"
+                onClick={toggleSidebar}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:bg-surface-hover hover:text-text-primary"
+                aria-label="Show Sidebar"
+              >
+                <SidebarToggleIcon />
+              </button>
+            )}
+            <span className="text-xs text-text-muted">
             {activeNote
               ? saveStatus === "saving"
                 ? "Saving…"
@@ -293,7 +405,8 @@ function App() {
                   ? "Saved"
                   : ""
               : ""}
-          </span>
+            </span>
+          </div>
           {activeNote && activeContent && (
             <NoteMenu
               pinned={Boolean(activeNote.pinned)}
@@ -321,15 +434,22 @@ function App() {
         </div>{/* end row 2 split */}
       </header>
 
-      {/* ── Body: sidebar + note area ── */}
+      {/* ── Body: sidebar + note editor ── */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
+      {!sidebarHidden && (
       <Sidebar
         notes={notes}
         archivedNotes={archivedNotes}
+        folders={folders}
+        activeFolderId={activeFolderId}
         sidebarView={sidebarView}
         activeNoteId={activeNote?.id ?? null}
         saveStatus={saveStatus}
         onSelectNote={(id) => void selectNote(id)}
+        onSelectFolder={(id) => void selectFolder(id)}
+        onCreateFolder={(name) => void createFolder(name)}
+        onRenameFolder={(id, name) => void renameFolder(id, name)}
+        onDeleteFolder={(id) => void deleteFolder(id)}
         onSetView={(view) => void setSidebarView(view)}
         onTogglePin={(id) => void handleTogglePinFromSidebar(id)}
         onArchiveNote={handleSidebarArchive}
@@ -342,8 +462,10 @@ function App() {
           await selectNote(id);
           void handlePrintPdf();
         }}
+        onMoveNoteToFolder={(noteId, folderId) => void moveNoteToFolder(noteId, folderId)}
         onEmptyTrash={() => setEmptyArchiveOpen(true)}
       />
+      )}
 
       <main className="flex min-w-0 flex-1 flex-col">
         {activeNote && activeContent ? (
@@ -379,7 +501,7 @@ function App() {
             <p className="text-lg">Select a note or create a new one</p>
             <button
               type="button"
-              onClick={handleCreateNote}
+              onClick={() => handleCreateNote()}
               className="btn-primary px-4 py-2 text-sm"
             >
               + New note
@@ -387,7 +509,26 @@ function App() {
           </div>
         )}
       </main>
-      </div>{/* end body flex row */}
+      </div>{/* end body: sidebar + editor */}
+      </div>{/* end left + center column */}
+
+      <AiChatPanel
+        open={aiChatOpen}
+        onClose={toggleAiChat}
+        activeNote={activeNote}
+        messages={aiMessages}
+        settings={aiSettings}
+        onSettingsChange={setAiSettings}
+        loading={aiLoading}
+        error={aiError}
+        onClearError={() => setAiError(null)}
+        onSend={sendAiMessage}
+        onClear={clearAiMessages}
+        onCancel={cancelAiRequest}
+        onApply={handleApplyAiContent}
+      />
+
+      <AiChatToggle open={aiChatOpen} onToggle={toggleAiChat} />
 
       <QuickSwitcher
         open={quickSwitcherOpen}
@@ -407,6 +548,14 @@ function App() {
         preference={preference}
         onPreferenceChange={setThemePreference}
         onClose={() => setPreferencesOpen(false)}
+        aiSettings={aiSettings}
+        onAiSettingsChange={setAiSettings}
+        updateStatus={updateStatus}
+        updateVersion={updateVersion}
+        updateError={updateError}
+        upToDateMessage={upToDateMessage}
+        onCheckForUpdates={() => void checkForUpdates()}
+        onDownloadUpdate={() => void downloadAndInstall()}
       />
 
       <ConfirmDialog

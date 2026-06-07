@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { contentPreview } from "../lib/preview";
-import type { NoteSummary } from "../lib/types";
+import type { Folder, NoteSummary } from "../lib/types";
 
 interface NoteListItemProps {
   note: NoteSummary;
@@ -12,6 +12,8 @@ interface NoteListItemProps {
   onDelete?: (id: string) => void;
   onDuplicate?: (id: string) => void;
   onExportPdf?: (id: string) => void;
+  onMoveToFolder?: (noteId: string, folderId: string | null) => void;
+  folders?: Folder[];
 }
 
 function PinIcon({ filled }: { filled: boolean }) {
@@ -43,6 +45,8 @@ interface CtxMenuProps {
   onDelete?: (id: string) => void;
   onDuplicate?: (id: string) => void;
   onExportPdf?: (id: string) => void;
+  onMoveToFolder?: (noteId: string, folderId: string | null) => void;
+  folders?: Folder[];
 }
 
 function SvgIcon({ path, viewBox = "0 0 20 20" }: { path: string; viewBox?: string }) {
@@ -100,6 +104,8 @@ function ContextMenu({
   onDelete,
   onDuplicate,
   onExportPdf,
+  onMoveToFolder,
+  folders,
 }: CtxMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -155,6 +161,26 @@ function ContextMenu({
         />
       )}
 
+      {onMoveToFolder && folders && folders.length > 0 && (
+        <>
+          <div className="my-1 h-px bg-border-subtle" />
+          <p className="px-3 py-0.5 text-xs font-medium text-text-muted">Move to folder</p>
+          <CtxItem
+            icon={<span className="text-sm">📁</span>}
+            label="No folder"
+            onClick={() => run(() => onMoveToFolder(note.id, null))}
+          />
+          {folders.map((folder) => (
+            <CtxItem
+              key={folder.id}
+              icon={<span className="text-sm">📂</span>}
+              label={folder.name}
+              onClick={() => run(() => onMoveToFolder(note.id, folder.id))}
+            />
+          ))}
+        </>
+      )}
+
       {(onTogglePin || onDuplicate || onExportPdf) && (onArchive || onDelete) && (
         <div className="my-1 h-px bg-border-subtle" />
       )}
@@ -189,6 +215,8 @@ export function NoteListItem({
   onDelete,
   onDuplicate,
   onExportPdf,
+  onMoveToFolder,
+  folders,
 }: NoteListItemProps) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null);
 
@@ -265,6 +293,8 @@ export function NoteListItem({
           onDelete={onDelete}
           onDuplicate={onDuplicate}
           onExportPdf={onExportPdf}
+          onMoveToFolder={onMoveToFolder}
+          folders={folders}
         />
       )}
     </>

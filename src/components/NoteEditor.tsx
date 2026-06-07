@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { JSONContent } from "@tiptap/react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { editorExtensions } from "../lib/tiptap";
@@ -45,6 +45,17 @@ export function NoteEditor({
       onChange(JSON.stringify(ed.getJSON()));
     },
   });
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+    const current = JSON.stringify(editor.getJSON());
+    const incoming = JSON.stringify(content);
+    if (current !== incoming) {
+      editor.commands.setContent(content, { emitUpdate: false });
+    }
+  }, [content, editor]);
 
   // When findQuery arrives (from QuickSwitcher), open the find bar
   const effectiveFindQuery =

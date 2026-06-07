@@ -4,10 +4,12 @@ interface KeyboardHelpProps {
 }
 
 const shortcuts = [
+  { keys: "⌘ ⇧ A", action: "Toggle AI assistant" },
   { keys: "⌘ N", action: "New note" },
   { keys: "⌘ K", action: "Search / Quick switcher" },
   { keys: "⌘ F", action: "Find within note" },
   { keys: "⌘ P", action: "Pin / unpin note" },
+  { keys: "⌘ B", action: "Show / hide sidebar" },
   { keys: "⌘ Backspace", action: "Archive note" },
   { keys: "⌘ Delete", action: "Delete note permanently" },
   { keys: "/", action: "Insert block (slash menu)" },

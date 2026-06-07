@@ -111,6 +111,15 @@ function nodeToMd(node: JSONContent, depth = 0): string {
   }
 }
 
+export function contentToMarkdown(contentJson: string): string {
+  try {
+    const doc = JSON.parse(contentJson) as JSONContent;
+    return nodeToMd(doc).trim();
+  } catch {
+    return "";
+  }
+}
+
 export function noteToMarkdown(title: string, contentJson: string): string {
   try {
     const doc = JSON.parse(contentJson) as JSONContent;

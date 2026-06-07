@@ -38,6 +38,14 @@ export const MarkdownPasteExtension = Extension.create({
             const clipboard = event.clipboardData;
             if (!clipboard) return false;
 
+            if (
+              Array.from(clipboard.items).some((item) =>
+                item.type.startsWith("image/"),
+              )
+            ) {
+              return false;
+            }
+
             // If the clipboard has rich HTML already, let TipTap handle it normally
             const html = clipboard.getData("text/html");
             if (html && html.trim().length > 0) return false;

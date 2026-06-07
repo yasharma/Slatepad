@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Slatepad — Local-first notes for Mac</title>
+    <meta
+      name="description"
+      content="Slatepad is a beautiful offline note-taking app for macOS. Rich editor, folders, AI assistant, backup, and no cloud required."
+    />
+    <link rel="icon" href="https://github.com/yasharma/Slatepad/raw/main/src-tauri/icons/32x32.png" />
+    <style>
+      :root {
+        --bg: #ffffff;
+        --sidebar: #f5f5f4;
+        --text: #37352f;
+        --muted: #787774;
+        --border: #e9e9e7;
+        --accent: #2383e2;
+        --card: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #191919;
+          --sidebar: #202020;
+          --text: #ebebeb;
+          --muted: #9b9b9b;
+          --border: #2f2f2f;
+          --accent: #5b9bd5;
+          --card: #252525;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 0 1.5rem 4rem;
+      }
+
+      header {
+        padding: 2.5rem 0 1.5rem;
+        text-align: center;
+      }
+
+      header h1 {
+        margin: 0 0 0.5rem;
+        font-size: clamp(2rem, 5vw, 2.75rem);
+        letter-spacing: -0.02em;
+      }
+
+      header p {
+        margin: 0 auto;
+        max-width: 36rem;
+        color: var(--muted);
+        font-size: 1.125rem;
+      }
+
+      .cta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+        margin-top: 1.5rem;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 0.65rem 1.25rem;
+        border-radius: 0.5rem;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        text-decoration: none;
+        border: 1px solid var(--border);
+      }
+
+      .btn-primary {
+        background: #37352f;
+        color: #fff;
+        border-color: #37352f;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .btn-primary {
+          background: #ebebeb;
+          color: #191919;
+          border-color: #ebebeb;
+        }
+      }
+
+      .btn-secondary {
+        background: var(--card);
+        color: var(--text);
+      }
+
+      .hero-img {
+        margin: 2rem 0 3rem;
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+        overflow: hidden;
+        box-shadow: 0 20px 50px rgb(0 0 0 / 0.08);
+      }
+
+      .hero-img img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      section {
+        margin-bottom: 3rem;
+      }
+
+      section h2 {
+        font-size: 1.375rem;
+        margin: 0 0 1rem;
+        letter-spacing: -0.01em;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1rem;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+      }
+
+      .card h3 {
+        margin: 0 0 0.5rem;
+        font-size: 1rem;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.9375rem;
+      }
+
+      ul.features {
+        margin: 0;
+        padding-left: 1.25rem;
+        color: var(--muted);
+      }
+
+      ul.features li {
+        margin-bottom: 0.35rem;
+      }
+
+      code {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 0.25rem;
+        padding: 0.1rem 0.35rem;
+        font-size: 0.875em;
+      }
+
+      footer {
+        border-top: 1px solid var(--border);
+        padding-top: 2rem;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Slatepad</h1>
+        <p>
+          Local-first notes for macOS — rich editing, folders, and an optional AI assistant.
+          Everything stays on your Mac in SQLite. No account, no sync, no cloud.
+        </p>
+        <div class="cta">
+          <a class="btn btn-primary" href="https://github.com/yasharma/Slatepad/releases/latest">Download</a>
+          <a class="btn btn-secondary" href="https://github.com/yasharma/Slatepad">GitHub</a>
+          <a class="btn btn-secondary" href="https://github.com/yasharma/Slatepad/blob/main/README.md">Install guide</a>
+        </div>
+      </header>
+
+      <div class="hero-img">
+        <img src="screenshot.png" alt="Slatepad with note editor and AI assistant panel" width="1200" height="720" />
+      </div>
+
+      <section>
+        <h2>Why Slatepad?</h2>
+        <p style="color: var(--muted); margin-top: 0;">
+          Slatepad feels like a modern notes app — clean sidebar, distraction-free editor, keyboard shortcuts —
+          but your data never leaves your machine unless you export it.
+        </p>
+      </section>
+
+      <section>
+        <h2>Notes &amp; organization</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>Folders &amp; pins</h3>
+            <p>Group notes in folders, pin important ones, and sort by modified date or title.</p>
+          </div>
+          <div class="card">
+            <h3>Search</h3>
+            <p><code>⌘K</code> quick switcher searches titles, tags, and full note content.</p>
+          </div>
+          <div class="card">
+            <h3>Templates</h3>
+            <p>Start from blank, daily tasks, or meeting notes templates.</p>
+          </div>
+          <div class="card">
+            <h3>Archive &amp; backup</h3>
+            <p>Soft-delete to archive, export/import a full <code>.db</code> backup from Settings.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Rich editor</h2>
+        <ul class="features">
+          <li>Headings, lists, todos, quotes, code blocks, tables, links, dividers</li>
+          <li><code>/</code> slash menu and bubble formatting toolbar</li>
+          <li>Paste Markdown or images directly into notes</li>
+          <li>Find in note (<code>⌘F</code>), copy as Markdown, export PDF</li>
+          <li>Per-note emoji icon and full-width layout toggle</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>AI assistant (optional)</h2>
+        <p style="color: var(--muted); margin-top: 0;">
+          Open the right-side AI panel with <code>⌘⇧A</code>. Slatepad sends your
+          <strong>currently open note</strong> as context — summarize, suggest tags, improve clarity, or ask anything.
+        </p>
+        <div class="grid" style="margin-top: 1rem;">
+          <div class="card">
+            <h3>Bring your own model</h3>
+            <p>Connect Ollama, LiteLLM, or any OpenAI-compatible API. API keys stay in local settings.</p>
+          </div>
+          <div class="card">
+            <h3>Test connection</h3>
+            <p>Verify URL, key, and model before chatting. Clear errors when the server is down.</p>
+          </div>
+          <div class="card">
+            <h3>Apply to note</h3>
+            <p>Rendered markdown replies with Copy and Apply — push AI suggestions into your editor.</p>
+          </div>
+        </div>
+        <p style="color: var(--muted); font-size: 0.9375rem; margin-top: 1rem;">
+          Setup guide:
+          <a href="https://github.com/yasharma/Slatepad/blob/main/scripts/AI.md">scripts/AI.md</a>
+        </p>
+      </section>
+
+      <section>
+        <h2>Install on macOS</h2>
+        <pre style="background: var(--card); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1rem; overflow-x: auto; font-size: 0.875rem;"><code>brew tap yasharma/tap
+brew install --cask slatepad
+xattr -dr com.apple.quarantine /Applications/Slatepad.app
+open /Applications/Slatepad.app</code></pre>
+        <p style="color: var(--muted); font-size: 0.9375rem;">
+          The <code>xattr</code> step is a one-time Gatekeeper bypass for unsigned builds.
+          See the <a href="https://github.com/yasharma/Slatepad/blob/main/README.md">README</a> for DMG installs and upgrades.
+        </p>
+      </section>
+
+      <footer>
+        <p>
+          MIT License ·
+          <a href="https://github.com/yasharma/Slatepad">Source on GitHub</a>
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>

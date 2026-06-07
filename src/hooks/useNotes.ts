@@ -1,7 +1,7 @@
 import type { JSONContent } from "@tiptap/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as db from "../lib/db";
-import type { Note, NoteSummary, SaveStatus, SidebarView } from "../lib/types";
+import type { Folder, Note, NoteSummary, SaveStatus, SidebarView } from "../lib/types";
 import { EMPTY_DOC } from "../lib/types";
 import { useAutoSave } from "./useAutoSave";
 
@@ -16,17 +16,21 @@ function parseContent(content: string): JSONContent {
 export function useNotes() {
   const [notes, setNotes] = useState<NoteSummary[]>([]);
   const [archivedNotes, setArchivedNotes] = useState<NoteSummary[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [sidebarView, setSidebarView] = useState<SidebarView>("active");
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const activeNoteRef = useRef(activeNote);
+  const activeFolderIdRef = useRef(activeFolderId);
   const titleRef = useRef("");
   const contentRef = useRef("");
   const tagsRef = useRef("");
 
   activeNoteRef.current = activeNote;
+  activeFolderIdRef.current = activeFolderId;
   if (activeNote) {
     titleRef.current = activeNote.title;
     contentRef.current = activeNote.content;
@@ -34,12 +38,15 @@ export function useNotes() {
   }
 
   const refreshList = useCallback(async () => {
-    const [list, archived] = await Promise.all([
-      db.listNotes(),
+    const folderId = activeFolderIdRef.current;
+    const [list, archived, folderList] = await Promise.all([
+      folderId ? db.listNotes(folderId) : db.listNotes(),
       db.listArchivedNotes(),
+      db.listFolders(),
     ]);
     setNotes(list);
     setArchivedNotes(archived);
+    setFolders(folderList);
     return list;
   }, []);
 
@@ -113,19 +120,107 @@ export function useNotes() {
     [flushSave],
   );
 
-  const createNote = useCallback(async () => {
+  const createNote = useCallback(
+    async (templateId?: string) => {
+      setError(null);
+      try {
+        await flushSave();
+        const note = await db.createNote({
+          templateId,
+          folderId: activeFolderIdRef.current,
+        });
+        await refreshList();
+        setSidebarView("active");
+        setActiveNote(note);
+      } catch (err) {
+        console.error("Failed to create note:", err);
+        setError("Could not create note. Please restart the app and try again.");
+      }
+    },
+    [flushSave, refreshList],
+  );
+
+  const selectFolder = useCallback(
+    async (folderId: string | null) => {
+      await flushSave();
+      setActiveFolderId(folderId);
+      activeFolderIdRef.current = folderId;
+      setSidebarView("active");
+      const list = folderId ? await db.listNotes(folderId) : await db.listNotes();
+      setNotes(list);
+      if (list.length > 0) {
+        const note = await db.getNote(list[0].id);
+        setActiveNote(note);
+      } else {
+        setActiveNote(null);
+      }
+    },
+    [flushSave],
+  );
+
+  const createFolder = useCallback(async (name: string) => {
     setError(null);
     try {
-      await flushSave();
-      const note = await db.createNote();
+      const folder = await db.createFolder(name);
       await refreshList();
-      setSidebarView("active");
-      setActiveNote(note);
+      return folder;
     } catch (err) {
-      console.error("Failed to create note:", err);
-      setError("Could not create note. Please restart the app and try again.");
+      console.error("Failed to create folder:", err);
+      setError("Could not create folder.");
+      return null;
     }
-  }, [flushSave, refreshList]);
+  }, [refreshList]);
+
+  const renameFolder = useCallback(async (id: string, name: string) => {
+    setError(null);
+    try {
+      await db.renameFolder(id, name);
+      await refreshList();
+    } catch (err) {
+      console.error("Failed to rename folder:", err);
+      setError("Could not rename folder.");
+    }
+  }, [refreshList]);
+
+  const deleteFolder = useCallback(async (id: string) => {
+    setError(null);
+    try {
+      await db.deleteFolder(id);
+      if (activeFolderIdRef.current === id) {
+        setActiveFolderId(null);
+        activeFolderIdRef.current = null;
+      }
+      await refreshList();
+      const list = await db.listNotes();
+      setNotes(list);
+      if (list.length > 0) {
+        const note = await db.getNote(list[0].id);
+        setActiveNote(note);
+      } else {
+        setActiveNote(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete folder:", err);
+      setError("Could not delete folder.");
+    }
+  }, [refreshList]);
+
+  const moveNoteToFolder = useCallback(
+    async (noteId: string, folderId: string | null) => {
+      setError(null);
+      try {
+        await db.moveNoteToFolder(noteId, folderId);
+        await refreshList();
+        if (activeNoteRef.current?.id === noteId) {
+          setActiveNote((prev) => (prev ? { ...prev, folder_id: folderId } : prev));
+        }
+      } catch (err) {
+        console.error("Failed to move note:", err);
+        setError("Could not move note to folder.");
+      }
+    },
+    [refreshList],
+  );
 
   const archiveNote = useCallback(async () => {
     const note = activeNoteRef.current;
@@ -301,16 +396,13 @@ export function useNotes() {
     setError(null);
     try {
       await db.deleteNotePermanently(note.id);
-      const list = await db.listNotes();
-      setNotes(list);
-      const archived = await db.listArchivedNotes();
-      setArchivedNotes(archived);
+      const list = await refreshList();
       if (list.length > 0) {
         const next = await db.getNote(list[0].id);
         setActiveNote(next);
         setSidebarView("active");
-      } else if (archived.length > 0) {
-        const next = await db.getNote(archived[0].id);
+      } else if (archivedNotes.length > 0) {
+        const next = await db.getNote(archivedNotes[0].id);
         setActiveNote(next);
         setSidebarView("archived");
       } else {
@@ -321,7 +413,7 @@ export function useNotes() {
       console.error("Failed to delete note:", err);
       setError("Could not delete note.");
     }
-  }, [refreshList]);
+  }, [refreshList, archivedNotes]);
 
   const switchSidebarView = useCallback(
     async (view: SidebarView) => {
@@ -330,8 +422,10 @@ export function useNotes() {
       const list =
         view === "archived"
           ? await db.listArchivedNotes()
-          : await db.listNotes();
-      setNotes(await db.listNotes());
+          : activeFolderIdRef.current
+            ? await db.listNotes(activeFolderIdRef.current)
+            : await db.listNotes();
+      setNotes(await db.listNotes(activeFolderIdRef.current ?? undefined));
       setArchivedNotes(await db.listArchivedNotes());
       if (list.length > 0) {
         const note = await db.getNote(list[0].id);
@@ -348,6 +442,8 @@ export function useNotes() {
   return {
     notes,
     archivedNotes,
+    folders,
+    activeFolderId,
     sidebarView,
     setSidebarView: switchSidebarView,
     activeNote,
@@ -356,7 +452,12 @@ export function useNotes() {
     error,
     saveStatus: saveStatus as SaveStatus,
     selectNote,
+    selectFolder,
     createNote,
+    createFolder,
+    renameFolder,
+    deleteFolder,
+    moveNoteToFolder,
     archiveNote,
     restoreNote,
     deleteArchivedPermanently,
