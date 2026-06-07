@@ -20,6 +20,7 @@ interface ChatCompletionResponse {
     message?: {
       content?: string | null;
     };
+    finish_reason?: string | null;
   }>;
   error?: {
     message?: string;
@@ -152,18 +153,82 @@ async function postChatCompletion(
   }
 }
 
+function isReasoningModel(model: string): boolean {
+  const name = model.toLowerCase();
+  return (
+    name.startsWith("gpt-5") ||
+    name.startsWith("o1") ||
+    name.startsWith("o3") ||
+    name.startsWith("o4")
+  );
+}
+
+function tokenLimitFields(
+  model: string,
+  limit: number,
+): Record<string, number> {
+  return isReasoningModel(model)
+    ? { max_completion_tokens: limit }
+    : { max_tokens: limit };
+}
+
+function reasoningModelFields(model: string): Record<string, string> {
+  if (!isReasoningModel(model)) {
+    return {};
+  }
+  return { reasoning_effort: "minimal" };
+}
+
+function extractAssistantContent(
+  payload: ChatCompletionResponse,
+  emptyMessage: string,
+): string {
+  const choice = payload.choices?.[0];
+  const content = choice?.message?.content?.trim();
+  if (content) {
+    return content;
+  }
+
+  if (choice?.finish_reason === "length") {
+    throw new Error(
+      "Model hit the token limit before producing output. For GPT-5 / o-series models, use reasoning_effort minimal and a higher token limit.",
+    );
+  }
+
+  throw new Error(emptyMessage);
+}
+
+function buildTestRequestBody(settings: AiSettings): Record<string, unknown> {
+  const testTokenLimit = isReasoningModel(settings.model) ? 256 : 16;
+
+  return {
+    model: settings.model,
+    messages: [{ role: "user", content: "Reply with exactly: OK" }],
+    ...reasoningModelFields(settings.model),
+    ...tokenLimitFields(settings.model, testTokenLimit),
+    stream: false,
+  };
+}
+
+function buildChatRequestBody(
+  settings: AiSettings,
+  messages: OpenAiChatMessage[],
+): Record<string, unknown> {
+  return {
+    model: settings.model,
+    messages,
+    ...reasoningModelFields(settings.model),
+    stream: false,
+  };
+}
+
 export async function testConnection(
   settings: AiSettings,
   signal?: AbortSignal,
 ): Promise<string> {
   const { payload, response } = await postChatCompletion(
     settings,
-    {
-      model: settings.model,
-      messages: [{ role: "user", content: "Reply with exactly: OK" }],
-      max_tokens: 16,
-      stream: false,
-    },
+    buildTestRequestBody(settings),
     signal,
     TEST_TIMEOUT_MS,
   );
@@ -174,10 +239,10 @@ export async function testConnection(
     );
   }
 
-  const content = payload.choices?.[0]?.message?.content?.trim();
-  if (!content) {
-    throw new Error("Connected, but the model returned an empty response");
-  }
+  extractAssistantContent(
+    payload,
+    "Connected, but the model returned an empty response",
+  );
 
   return `Connected to ${settings.model}`;
 }
@@ -205,11 +270,7 @@ export async function sendChatCompletion(
 
   const { payload, response } = await postChatCompletion(
     settings,
-    {
-      model: settings.model,
-      messages: apiMessages,
-      stream: false,
-    },
+    buildChatRequestBody(settings, apiMessages),
     signal,
     CHAT_TIMEOUT_MS,
   );
@@ -220,12 +281,7 @@ export async function sendChatCompletion(
     );
   }
 
-  const content = payload.choices?.[0]?.message?.content;
-  if (!content?.trim()) {
-    throw new Error("Empty response from AI model");
-  }
-
-  return content.trim();
+  return extractAssistantContent(payload, "Empty response from AI model");
 }
 
 export const QUICK_ACTIONS = [
