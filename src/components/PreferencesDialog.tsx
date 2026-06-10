@@ -1,7 +1,9 @@
 import { useState } from "react";
+import type { MeetingRecorderState } from "../hooks/useMeetingRecorder";
 import type { ThemePreference } from "../hooks/useTheme";
 import type { UpdateStatus } from "../hooks/useUpdater";
 import type { AiSettings } from "../lib/aiSettings";
+import type { MeetingSettings } from "../lib/meetingSettings";
 import { exportDatabaseBackup, importDatabaseBackup } from "../lib/backup";
 import { AiSettingsForm } from "./AiSettingsForm";
 
@@ -12,6 +14,12 @@ interface PreferencesDialogProps {
   onClose: () => void;
   aiSettings: AiSettings;
   onAiSettingsChange: (settings: AiSettings) => void;
+  meetingSettings: MeetingSettings;
+  onMeetingSettingsChange: (settings: MeetingSettings) => void;
+  recorderState: MeetingRecorderState;
+  onCheckPermissions: () => void;
+  onRequestMicPermission: () => void;
+  onRequestSystemAudioPermission: () => void;
   updateStatus: UpdateStatus;
   updateVersion: string | null;
   updateError: string | null;
@@ -26,6 +34,12 @@ const themeOptions: { value: ThemePreference; label: string }[] = [
   { value: "system", label: "System" },
 ];
 
+const onDetectOptions: { value: MeetingSettings["onDetect"]; label: string }[] = [
+  { value: "ask", label: "Ask" },
+  { value: "auto", label: "Auto" },
+  { value: "ignore", label: "Ignore" },
+];
+
 export function PreferencesDialog({
   open,
   preference,
@@ -33,6 +47,12 @@ export function PreferencesDialog({
   onClose,
   aiSettings,
   onAiSettingsChange,
+  meetingSettings,
+  onMeetingSettingsChange,
+  recorderState,
+  onCheckPermissions,
+  onRequestMicPermission,
+  onRequestSystemAudioPermission,
   updateStatus,
   updateVersion,
   updateError,
@@ -148,6 +168,161 @@ export function PreferencesDialog({
             See <code className="text-xs">scripts/AI.md</code> for setup.
           </p>
           <AiSettingsForm settings={aiSettings} onChange={onAiSettingsChange} />
+        </section>
+
+        <section className="mt-6 border-t border-border-subtle pt-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+            Meeting Notes
+          </h3>
+          <p className="mt-2 text-sm text-text-secondary">
+            Automatically detect meetings, record audio, transcribe, and create notes.
+          </p>
+
+          <label className="mt-3 flex cursor-pointer items-center justify-between gap-3">
+            <span className="text-sm text-text-secondary">Enable Meeting Notes</span>
+            <input
+              type="checkbox"
+              checked={meetingSettings.enabled}
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                onMeetingSettingsChange({ ...meetingSettings, enabled });
+                if (enabled) {
+                  void onCheckPermissions();
+                }
+              }}
+              className="h-4 w-4 rounded border-border"
+            />
+          </label>
+
+          {meetingSettings.enabled && (
+            <div className="mt-4 space-y-4">
+              {!recorderState.micPermission || !recorderState.systemAudioPermission ? (
+                <p className="text-xs text-text-muted">
+                  Slatepad needs microphone access to capture your voice and system audio access
+                  to capture other meeting participants.
+                </p>
+              ) : null}
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-text-secondary">
+                    Microphone{" "}
+                    {recorderState.micPermission ? (
+                      <span className="text-green-600 dark:text-green-400">✓ Granted</span>
+                    ) : (
+                      <span className="text-red-500">✗ Not granted</span>
+                    )}
+                  </span>
+                  {!recorderState.micPermission && (
+                    <button
+                      type="button"
+                      onClick={() => void onRequestMicPermission()}
+                      className="rounded-md border border-border px-2 py-1 text-xs text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+                    >
+                      Grant
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-text-secondary">
+                    System Audio{" "}
+                    {recorderState.systemAudioPermission ? (
+                      <span className="text-green-600 dark:text-green-400">✓ Granted</span>
+                    ) : (
+                      <span className="text-red-500">✗ Not granted</span>
+                    )}
+                  </span>
+                  {!recorderState.systemAudioPermission && (
+                    <button
+                      type="button"
+                      onClick={() => void onRequestSystemAudioPermission()}
+                      className="rounded-md border border-border px-2 py-1 text-xs text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+                    >
+                      Grant
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm text-text-secondary">When a meeting is detected</p>
+                <div
+                  className="mt-2 inline-flex rounded-lg border border-border bg-surface p-0.5"
+                  role="radiogroup"
+                  aria-label="When a meeting is detected"
+                >
+                  {onDetectOptions.map((option) => {
+                    const selected = meetingSettings.onDetect === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() =>
+                          onMeetingSettingsChange({ ...meetingSettings, onDetect: option.value })
+                        }
+                        className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+                          selected
+                            ? "bg-surface-active text-text-primary shadow-sm"
+                            : "text-text-secondary hover:text-text-primary"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <label className="block">
+                <span className="text-sm text-text-secondary">Transcription model</span>
+                <input
+                  type="text"
+                  value={meetingSettings.transcriptionModel}
+                  onChange={(e) =>
+                    onMeetingSettingsChange({
+                      ...meetingSettings,
+                      transcriptionModel: e.target.value,
+                    })
+                  }
+                  className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-text-primary"
+                  placeholder="whisper-1"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm text-text-secondary">Transcription language</span>
+                <input
+                  type="text"
+                  value={meetingSettings.transcriptionLanguage}
+                  onChange={(e) =>
+                    onMeetingSettingsChange({
+                      ...meetingSettings,
+                      transcriptionLanguage: e.target.value,
+                    })
+                  }
+                  className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-text-primary"
+                  placeholder="en (leave blank for auto-detect)"
+                />
+              </label>
+
+              <label className="flex cursor-pointer items-center justify-between gap-3">
+                <span className="text-sm text-text-secondary">Auto-summarize after recording</span>
+                <input
+                  type="checkbox"
+                  checked={meetingSettings.autoSummarize}
+                  onChange={(e) =>
+                    onMeetingSettingsChange({
+                      ...meetingSettings,
+                      autoSummarize: e.target.checked,
+                    })
+                  }
+                  className="h-4 w-4 rounded border-border"
+                />
+              </label>
+            </div>
+          )}
         </section>
 
         <section className="mt-6 border-t border-border-subtle pt-4">

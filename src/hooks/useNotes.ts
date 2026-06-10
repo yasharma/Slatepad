@@ -105,10 +105,11 @@ export function useNotes() {
 
   const selectNote = useCallback(
     async (id: string) => {
-      if (activeNoteRef.current?.id === id) {
-        return;
+      const isSameNote = activeNoteRef.current?.id === id;
+      if (!isSameNote) {
+        await flushSave();
       }
-      await flushSave();
+      await refreshList();
       const note = await db.getNote(id);
       if (note?.archived_at) {
         setSidebarView("archived");
@@ -117,7 +118,7 @@ export function useNotes() {
       }
       setActiveNote(note);
     },
-    [flushSave],
+    [flushSave, refreshList],
   );
 
   const createNote = useCallback(

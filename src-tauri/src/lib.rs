@@ -1,9 +1,23 @@
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::Mutex;
 
 use tauri::Manager;
 use tauri_plugin_sql::{Migration, MigrationKind};
+
+mod audio;
+
+use audio::{AudioPermissions, AudioState, RecordingStatusResponse};
+
+#[cfg(target_os = "macos")]
+use audio::RecordingResult;
+
+#[cfg(not(target_os = "macos"))]
+#[derive(serde::Serialize)]
+struct RecordingResult {
+    path: String,
+}
 
 /// Write HTML to a temp file and open it in the default browser so the user
 /// can use the browser's native "Print → Save as PDF" dialog.
@@ -52,6 +66,18 @@ fn export_database(app: tauri::AppHandle, dest_path: String) -> Result<(), Strin
     if !src.exists() {
         return Err("Database file not found.".into());
     }
+
+    // Checkpoint the WAL so all recent writes are flushed into the main .db
+    // file before we copy it. Without this, notes written since the last
+    // checkpoint only exist in the .db-wal file and would be missing from
+    // the exported backup.
+    {
+        let conn = rusqlite::Connection::open(&src)
+            .map_err(|e| format!("Could not open DB for checkpoint: {e}"))?;
+        conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
+            .map_err(|e| format!("WAL checkpoint failed: {e}"))?;
+    }
+
     fs::copy(&src, &dest_path).map_err(|e| format!("Export failed: {e}"))?;
     Ok(())
 }
@@ -70,17 +96,50 @@ fn import_database(app: tauri::AppHandle, source_path: String) -> Result<(), Str
         return Err("File is too small to be a valid SQLite backup.".into());
     }
 
-    if dest.exists() {
-        let backup = dest.with_extension("db.bak");
-        fs::copy(&dest, &backup).map_err(|e| format!("Could not backup current database: {e}"))?;
-    }
-
     if let Some(parent) = dest.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
 
-    fs::copy(&source, &dest).map_err(|e| format!("Import failed: {e}"))?;
+    // Stage the backup as a pending import file. The actual swap happens at
+    // the next startup (see apply_pending_import) BEFORE tauri-plugin-sql
+    // opens the database. This avoids the race where the current process's
+    // open SQLite connection flushes a stale WAL after we copy the file.
+    let pending = dest.with_extension("db.pending-import");
+    fs::copy(&source, &pending).map_err(|e| format!("Import staging failed: {e}"))?;
     Ok(())
+}
+
+/// Called at startup before any SQLite plugin opens the DB.
+/// If a pending import file exists, swaps it in atomically.
+fn apply_pending_import(app: &tauri::AppHandle) {
+    let dest = match database_path(app) {
+        Ok(p) => p,
+        Err(_) => return,
+    };
+    let pending = dest.with_extension("db.pending-import");
+    if !pending.exists() {
+        return;
+    }
+
+    // Backup the current DB before overwriting
+    if dest.exists() {
+        let backup = dest.with_extension("db.bak");
+        let _ = fs::copy(&dest, &backup);
+    }
+
+    // Remove stale WAL/SHM from the old database
+    let _ = fs::remove_file(dest.with_extension("db-shm"));
+    let _ = fs::remove_file(dest.with_extension("db-wal"));
+
+    // Swap in the pending import
+    if let Err(e) = fs::rename(&pending, &dest) {
+        // rename may fail across filesystems; fall back to copy+delete
+        if fs::copy(&pending, &dest).is_ok() {
+            let _ = fs::remove_file(&pending);
+        } else {
+            eprintln!("Slatepad: failed to apply pending import: {e}");
+        }
+    }
 }
 
 fn uuid_simple() -> String {
@@ -90,6 +149,89 @@ fn uuid_simple() -> String {
         .unwrap_or_default()
         .as_millis();
     format!("{:x}", t)
+}
+
+#[tauri::command]
+async fn start_meeting_detection(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Mutex<AudioState>>,
+) -> Result<(), String> {
+    state
+        .lock()
+        .map_err(|e| e.to_string())?
+        .start_meeting_detection(app)
+}
+
+#[tauri::command]
+async fn stop_meeting_detection(state: tauri::State<'_, Mutex<AudioState>>) -> Result<(), String> {
+    state
+        .lock()
+        .map_err(|e| e.to_string())?
+        .stop_meeting_detection()
+}
+
+#[tauri::command]
+async fn start_recording(
+    app: tauri::AppHandle,
+    pid: Option<u32>,
+    state: tauri::State<'_, Mutex<AudioState>>,
+) -> Result<(), String> {
+    state
+        .lock()
+        .map_err(|e| e.to_string())?
+        .start_recording(app, pid)
+}
+
+#[tauri::command]
+async fn stop_recording(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Mutex<AudioState>>,
+) -> Result<RecordingResult, String> {
+    state
+        .lock()
+        .map_err(|e| e.to_string())?
+        .stop_recording(app)
+}
+
+#[tauri::command]
+fn get_recording_status(state: tauri::State<'_, Mutex<AudioState>>) -> RecordingStatusResponse {
+    state
+        .lock()
+        .map(|audio_state| audio_state.get_recording_status())
+        .unwrap_or(RecordingStatusResponse::Idle)
+}
+
+#[tauri::command]
+fn check_audio_permissions(state: tauri::State<'_, Mutex<AudioState>>) -> AudioPermissions {
+    state
+        .lock()
+        .map(|audio_state| audio_state.check_audio_permissions())
+        .unwrap_or(AudioPermissions {
+            microphone: false,
+            system_audio: false,
+        })
+}
+
+#[tauri::command]
+async fn request_microphone_permission(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Mutex<AudioState>>,
+) -> Result<bool, String> {
+    state
+        .lock()
+        .map_err(|e| e.to_string())?
+        .request_microphone_permission(app)
+}
+
+#[tauri::command]
+async fn request_system_audio_permission(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Mutex<AudioState>>,
+) -> Result<bool, String> {
+    state
+        .lock()
+        .map_err(|e| e.to_string())?
+        .request_system_audio_permission(app)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -153,11 +295,25 @@ pub fn run() {
                 .add_migrations("sqlite:notes.db", migrations)
                 .build(),
         )
+        .setup(|app| {
+            // Apply any staged import BEFORE the SQL plugin opens the DB.
+            apply_pending_import(&app.handle());
+            Ok(())
+        })
+        .manage(Mutex::new(AudioState::new()))
         .invoke_handler(tauri::generate_handler![
             open_print_preview,
             get_database_path,
             export_database,
             import_database,
+            start_meeting_detection,
+            stop_meeting_detection,
+            start_recording,
+            stop_recording,
+            get_recording_status,
+            check_audio_permissions,
+            request_microphone_permission,
+            request_system_audio_permission,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

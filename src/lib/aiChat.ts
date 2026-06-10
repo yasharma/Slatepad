@@ -252,10 +252,11 @@ export async function sendChatCompletion(
   messages: ChatMessage[],
   note: Note | null,
   signal?: AbortSignal,
+  systemPromptOverride?: string,
 ): Promise<string> {
   const systemMessage: OpenAiChatMessage = {
     role: "system",
-    content: buildSystemMessage(settings, note),
+    content: systemPromptOverride ?? buildSystemMessage(settings, note),
   };
 
   const apiMessages: OpenAiChatMessage[] = [

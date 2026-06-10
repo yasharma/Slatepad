@@ -39,6 +39,9 @@
 - Rendered markdown replies with **Copy** and **Apply to note**
 - See [scripts/AI.md](scripts/AI.md) for setup
 
+### Meeting Notes
+- **Meeting Notes** — auto-detect meetings (Google Meet, Zoom, Teams), record audio, transcribe with Whisper via LiteLLM, and create a structured note with summary, action items, and full transcript
+
 ### Shortcuts
 | Shortcut | Action |
 |----------|--------|

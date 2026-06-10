@@ -88,3 +88,46 @@ Settings are stored in `localStorage` under `slatepad-ai-settings`.
 ## Keyboard shortcut
 
 **⌘⇧A** — toggle AI chat panel
+
+## Meeting Notes (Transcription)
+
+The Meeting Notes feature uses LiteLLM's `/audio/transcriptions` endpoint (compatible with OpenAI Whisper).
+
+### Configure a Whisper model in LiteLLM
+
+Add this to your `litellm_config.yaml`:
+
+```yaml
+model_list:
+  - model_name: whisper-1
+    litellm_params:
+      model: whisper/whisper-1        # or groq/whisper-large-v3, openai/whisper-1, etc.
+      api_key: YOUR_KEY_HERE
+      # For local Whisper (faster-whisper):
+      # model: faster_whisper/base
+      # api_base: http://localhost:8000
+```
+
+Then set **Transcription model** in Slatepad Settings → Meeting Notes to `whisper-1`.
+
+### Supported providers
+
+| Provider | model string in config |
+|----------|----------------------|
+| OpenAI | `openai/whisper-1` |
+| Groq | `groq/whisper-large-v3` |
+| Local faster-whisper | `faster_whisper/base` |
+| Azure Whisper | `azure/whisper-1` |
+
+### macOS Requirements
+
+- **Microphone recording**: Works on all supported macOS versions
+- **System audio recording** (capturing other participants): Requires **macOS 14.2+ (Sonoma)**
+
+### Permissions
+
+On first enable, Slatepad will prompt for:
+1. **Microphone** — to capture your own voice
+2. **System Audio** — to capture meeting participant audio (macOS 14.2+)
+
+If you deny a permission, you can re-grant it in **System Settings → Privacy & Security**.

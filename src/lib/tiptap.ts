@@ -3,6 +3,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { Table, TableRow, TableHeader, TableCell } from "@tiptap/extension-table";
 import Image from "@tiptap/extension-image";
 import StarterKit from "@tiptap/starter-kit";
@@ -10,6 +11,9 @@ import { ImagePasteExtension } from "./imagePasteExtension";
 import { MarkdownPasteExtension } from "./markdownPasteExtension";
 import { SlashCommandExtension } from "./slashCommandExtension";
 import { FindExtension } from "./findExtension";
+import { appLowlight } from "./lowlight";
+import { AudioPlayer } from "./audioPlayerNode";
+import { ExcalidrawBlock } from "./excalidrawNode";
 
 export const editorExtensions = [
   StarterKit.configure({
@@ -17,9 +21,16 @@ export const editorExtensions = [
     horizontalRule: {},
     blockquote: {},
     code: {},
-    codeBlock: {},
+    codeBlock: false,
     strike: {},
     listKeymap: {},
+  }),
+  CodeBlockLowlight.configure({
+    lowlight: appLowlight,
+    enableTabIndentation: true,
+    tabSize: 2,
+    defaultLanguage: "plaintext",
+    HTMLAttributes: { class: "editor-code-block" },
   }),
   TaskList,
   TaskItem.configure({ nested: true }),
@@ -44,4 +55,6 @@ export const editorExtensions = [
   MarkdownPasteExtension,
   SlashCommandExtension,
   FindExtension,
+  AudioPlayer,
+  ExcalidrawBlock,
 ];

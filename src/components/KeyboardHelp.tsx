@@ -5,6 +5,7 @@ interface KeyboardHelpProps {
 
 const shortcuts = [
   { keys: "⌘ ⇧ A", action: "Toggle AI assistant" },
+  { keys: "⌘ ⇧ M", action: "Toggle meeting recording" },
   { keys: "⌘ N", action: "New note" },
   { keys: "⌘ K", action: "Search / Quick switcher" },
   { keys: "⌘ F", action: "Find within note" },

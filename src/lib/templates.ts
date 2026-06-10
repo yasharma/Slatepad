@@ -44,6 +44,21 @@ const dailyTasksContent = {
   ],
 };
 
+const meetingNotesAutoContent = {
+  type: "doc",
+  content: [
+    {
+      type: "heading",
+      attrs: { level: 1 },
+      content: [{ type: "text", text: "Meeting Notes" }],
+    },
+    {
+      type: "paragraph",
+      content: [],
+    },
+  ],
+};
+
 const meetingNotesContent = {
   type: "doc",
   content: [
@@ -125,6 +140,14 @@ export const NOTE_TEMPLATES: NoteTemplate[] = [
     icon: "📝",
     title: "Meeting Notes",
     content: JSON.stringify(meetingNotesContent),
+    tags: "meetings",
+  },
+  {
+    id: "meeting-notes-auto",
+    name: "Meeting Notes (Auto)",
+    icon: "📅",
+    title: "",
+    content: JSON.stringify(meetingNotesAutoContent),
     tags: "meetings",
   },
 ];

@@ -20,6 +20,15 @@
   --code-bg: #f7f6f3;
   --pre-bg: #f7f6f3;
   --pre-text: #37352f;
+  --hljs-comment: #6a737d;
+  --hljs-keyword: #d73a49;
+  --hljs-string: #032f62;
+  --hljs-number: #005cc5;
+  --hljs-function: #6f42c1;
+  --hljs-variable: #e36209;
+  --hljs-type: #005cc5;
+  --hljs-symbol: #005cc5;
+  --hljs-deletion: #b31d28;
   --placeholder: #9b9a97;
   --blockquote-border: #d3d1cb;
   --blockquote-text: #787774;
@@ -53,6 +62,15 @@
   --code-bg: #2f2f2f;
   --pre-bg: #252525;
   --pre-text: #ebebeb;
+  --hljs-comment: #6a9955;
+  --hljs-keyword: #569cd6;
+  --hljs-string: #ce9178;
+  --hljs-number: #b5cea8;
+  --hljs-function: #dcdcaa;
+  --hljs-variable: #9cdcfe;
+  --hljs-type: #4ec9b0;
+  --hljs-symbol: #4fc1ff;
+  --hljs-deletion: #f44747;
   --placeholder: #737373;
   --blockquote-border: #404040;
   --blockquote-text: #9b9b9b;
@@ -103,6 +121,39 @@
 }
 
 /* TipTap placeholder */
+/* Word wrap ON (default): code blocks wrap at the container boundary */
+.tiptap pre code,
+.tiptap pre code.hljs {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Word wrap off: the editor scrolls horizontally; text doesn't wrap */
+.tiptap.no-word-wrap {
+  overflow-x: auto;
+}
+
+.tiptap.no-word-wrap p,
+.tiptap.no-word-wrap h1,
+.tiptap.no-word-wrap h2,
+.tiptap.no-word-wrap h3,
+.tiptap.no-word-wrap h4,
+.tiptap.no-word-wrap h5,
+.tiptap.no-word-wrap h6 {
+  white-space: nowrap;
+}
+
+.tiptap.no-word-wrap li > p {
+  white-space: nowrap;
+}
+
+/* Word wrap off: code blocks revert to scrolling */
+.tiptap.no-word-wrap pre code,
+.tiptap.no-word-wrap pre code.hljs {
+  white-space: pre;
+  word-break: normal;
+}
+
 .tiptap p.is-editor-empty:first-child::before {
   color: var(--placeholder);
   content: attr(data-placeholder);
@@ -252,12 +303,86 @@
   border-radius: 0.5rem;
   padding: 0.75rem 1rem;
   overflow-x: auto;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  tab-size: 2;
+  -moz-tab-size: 2;
 }
 
-.tiptap pre code {
+.tiptap pre code,
+.tiptap pre code.hljs {
+  display: block;
   background: transparent;
   padding: 0;
   color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Syntax highlighting (highlight.js / lowlight) */
+.tiptap .hljs-comment,
+.tiptap .hljs-quote {
+  color: var(--hljs-comment);
+  font-style: italic;
+}
+
+.tiptap .hljs-keyword,
+.tiptap .hljs-selector-tag,
+.tiptap .hljs-meta .hljs-keyword {
+  color: var(--hljs-keyword);
+}
+
+.tiptap .hljs-string,
+.tiptap .hljs-regexp,
+.tiptap .hljs-addition {
+  color: var(--hljs-string);
+}
+
+.tiptap .hljs-number,
+.tiptap .hljs-literal {
+  color: var(--hljs-number);
+}
+
+.tiptap .hljs-title,
+.tiptap .hljs-title.function_,
+.tiptap .hljs-section,
+.tiptap .hljs-name {
+  color: var(--hljs-function);
+}
+
+.tiptap .hljs-variable,
+.tiptap .hljs-template-variable,
+.tiptap .hljs-attr,
+.tiptap .hljs-attribute {
+  color: var(--hljs-variable);
+}
+
+.tiptap .hljs-built_in,
+.tiptap .hljs-type,
+.tiptap .hljs-class .hljs-title {
+  color: var(--hljs-type);
+}
+
+.tiptap .hljs-symbol,
+.tiptap .hljs-bullet,
+.tiptap .hljs-link {
+  color: var(--hljs-symbol);
+}
+
+.tiptap .hljs-deletion {
+  color: var(--hljs-deletion);
+}
+
+.tiptap .hljs-emphasis {
+  font-style: italic;
+}
+
+.tiptap .hljs-strong {
+  font-weight: 700;
 }
 
 .tiptap a.editor-link {
@@ -478,6 +603,39 @@
   align-self: stretch;
   background: var(--bubble-hover);
   margin: 0 0.125rem;
+}
+
+.code-block-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  background: var(--modal-bg);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.15),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.code-block-menu-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.code-block-menu-select {
+  border-radius: 0.25rem;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  padding: 0.125rem 0.375rem;
+  font-size: 0.75rem;
+}
+
+.code-block-menu-hint {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .bubble-menu-bar {

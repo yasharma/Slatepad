@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { JSONContent } from "@tiptap/react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { editorExtensions } from "../lib/tiptap";
 import { EditorBubbleMenu } from "./EditorBubbleMenu";
-import { EditorToolbar } from "./EditorToolbar";
+import { EditorToolbar, getWordWrap } from "./EditorToolbar";
 import { FindBar } from "./FindBar";
 import { TableMenu } from "./TableMenu";
+import { CodeBlockMenu } from "./CodeBlockMenu";
 
 interface NoteEditorProps {
   content: JSONContent;
@@ -21,6 +22,7 @@ export function NoteEditor({
   onChange,
 }: NoteEditorProps) {
   const [findOpen, setFindOpen] = useState(Boolean(findQuery));
+  const savedScrollRef = useRef<number>(0);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -44,6 +46,11 @@ export function NoteEditor({
     onUpdate: ({ editor: ed }) => {
       onChange(JSON.stringify(ed.getJSON()));
     },
+    onCreate: ({ editor: ed }) => {
+      if (!getWordWrap()) {
+        (ed.view.dom as HTMLElement).classList.add("no-word-wrap");
+      }
+    },
   });
 
   useEffect(() => {
@@ -57,6 +64,42 @@ export function NoteEditor({
     }
   }, [content, editor]);
 
+  // Save scroll position on window blur, restore on focus to prevent
+  // TipTap from jumping to the cursor position when the window regains focus.
+  useEffect(() => {
+    if (!editor) return;
+
+    const getScrollContainer = (): HTMLElement | null => {
+      let el = editor.view.dom.parentElement;
+      while (el) {
+        const style = window.getComputedStyle(el);
+        if (style.overflowY === "auto" || style.overflowY === "scroll") {
+          return el;
+        }
+        el = el.parentElement;
+      }
+      return null;
+    };
+
+    const onBlur = () => {
+      const container = getScrollContainer();
+      if (container) savedScrollRef.current = container.scrollTop;
+    };
+    const onFocus = () => {
+      requestAnimationFrame(() => {
+        const container = getScrollContainer();
+        if (container) container.scrollTop = savedScrollRef.current;
+      });
+    };
+
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [editor]);
+
   // When findQuery arrives (from QuickSwitcher), open the find bar
   const effectiveFindQuery =
     findQuery && !findOpen ? findQuery : undefined;
@@ -68,8 +111,12 @@ export function NoteEditor({
   };
 
   return (
-    <div>
-      <EditorToolbar editor={editor} onFind={() => setFindOpen(true)} />
+    <div className="contents">
+      <EditorToolbar
+        editor={editor}
+        onFind={() => setFindOpen(true)}
+        onInsertDraw={() => editor?.chain().focus().insertContent({ type: "excalidrawBlock" }).run()}
+      />
       {findOpen && (
         <FindBar
           editor={editor}
@@ -79,6 +126,7 @@ export function NoteEditor({
       )}
       <EditorBubbleMenu editor={editor} />
       <TableMenu editor={editor} />
+      <CodeBlockMenu editor={editor} />
       <EditorContent editor={editor} />
     </div>
   );

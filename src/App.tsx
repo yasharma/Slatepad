@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { AiChatPanel, AiChatToggle } from "./components/AiChatPanel";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { KeyboardHelp } from "./components/KeyboardHelp";
+import { MeetingBar } from "./components/MeetingBar";
+import { MeetingDetectedPopup } from "./components/MeetingDetectedPopup";
 import { NewNoteMenu } from "./components/NewNoteMenu";
 import { PreferencesDialog } from "./components/PreferencesDialog";
 import { NoteMenu } from "./components/NoteMenu";
@@ -15,8 +18,14 @@ import { appendMarkdownToContent } from "./lib/importMarkdown";
 import { openPrintPreview } from "./lib/printNote";
 import { useNotes } from "./hooks/useNotes";
 import { useAiChat } from "./hooks/useAiChat";
+import { useMeetingRecorder } from "./hooks/useMeetingRecorder";
 import { useTheme } from "./hooks/useTheme";
 import { useUpdater } from "./hooks/useUpdater";
+import {
+  getStoredMeetingSettings,
+  saveMeetingSettings,
+  type MeetingSettings,
+} from "./lib/meetingSettings";
 
 const SIDEBAR_HIDDEN_KEY = "slatepad-sidebar-hidden";
 
@@ -114,6 +123,36 @@ function App() {
     clearMessages: clearAiMessages,
     cancelRequest: cancelAiRequest,
   } = useAiChat(activeNote);
+  const [meetingSettings, setMeetingSettings] = useState<MeetingSettings>(getStoredMeetingSettings);
+  const handleMeetingSettingsChange = useCallback((next: MeetingSettings) => {
+    setMeetingSettings(next);
+    saveMeetingSettings(next);
+  }, []);
+  const handleMeetingNoteCreated = useCallback(
+    (id: string) => {
+      void selectNote(id);
+    },
+    [selectNote],
+  );
+  const {
+    state: meetingRecorderState,
+    confirmRecord,
+    skipMeeting,
+    alwaysRecord,
+    stopRecording,
+    toggleRecording,
+    dismissRecorded,
+    dismissError,
+    transcribeAndSummarize,
+    checkPermissions: checkMeetingPermissions,
+    requestMicPermission,
+    requestSystemAudioPermission,
+  } = useMeetingRecorder(
+    meetingSettings,
+    aiSettings,
+    handleMeetingNoteCreated,
+    handleMeetingSettingsChange,
+  );
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [emptyArchiveOpen, setEmptyArchiveOpen] = useState(false);
@@ -257,6 +296,12 @@ function App() {
         return;
       }
 
+      if (mod && e.shiftKey && e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        void toggleRecording();
+        return;
+      }
+
       if (e.key === "?" && !isTypingTarget(e.target)) {
         e.preventDefault();
         setHelpOpen(true);
@@ -264,7 +309,7 @@ function App() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [createNote, activeNote, togglePin, toggleSidebar, toggleAiChat]);
+  }, [createNote, activeNote, togglePin, toggleSidebar, toggleAiChat, toggleRecording]);
 
   useEffect(() => {
     const onBeforeUnload = () => {
@@ -309,6 +354,11 @@ function App() {
       <header
         className="no-print flex shrink-0 flex-col"
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+        onDoubleClick={(e) => {
+          // Only maximize on double-click of the drag area itself, not buttons
+          if ((e.target as HTMLElement).closest("button,input,textarea,select,a")) return;
+          void getCurrentWindow().toggleMaximize();
+        }}
       >
         {/* Row 1: full-width strip behind macOS traffic lights */}
         <div
@@ -380,12 +430,14 @@ function App() {
         </div>
         )}
 
-        {/* Note column: same bg as note content so it blends seamlessly */}
+        {/* Note column: drag region with no-drag only on interactive elements */}
         <div
           className="flex min-w-0 flex-1 items-end justify-between bg-app-bg px-8 pb-1"
-          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
         >
-          <div className="flex items-center gap-2">
+          <div
+            className="flex items-center gap-2"
+            style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+          >
             {sidebarHidden && (
               <button
                 type="button"
@@ -408,6 +460,7 @@ function App() {
             </span>
           </div>
           {activeNote && activeContent && (
+            <span style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
             <NoteMenu
               pinned={Boolean(activeNote.pinned)}
               fullWidth={fullWidth}
@@ -429,6 +482,7 @@ function App() {
               }
               onRestore={isArchivedNote ? () => void restoreNote() : undefined}
             />
+            </span>
           )}
         </div>
         </div>{/* end row 2 split */}
@@ -510,7 +564,26 @@ function App() {
         )}
       </main>
       </div>{/* end body: sidebar + editor */}
+
+      <MeetingBar
+        enabled={meetingSettings.enabled}
+        state={meetingRecorderState}
+        onStop={() => void stopRecording()}
+        onOpenNote={(id) => void selectNote(id)}
+        onTranscribe={() => void transcribeAndSummarize()}
+        onDismiss={dismissRecorded}
+        onDismissError={dismissError}
+      />
       </div>{/* end left + center column */}
+
+      {meetingRecorderState.status === "popup" && meetingRecorderState.detectedApp && (
+        <MeetingDetectedPopup
+          detectedApp={meetingRecorderState.detectedApp}
+          onRecord={() => void confirmRecord()}
+          onSkip={skipMeeting}
+          onAlwaysRecord={() => void alwaysRecord()}
+        />
+      )}
 
       <AiChatPanel
         open={aiChatOpen}
@@ -550,6 +623,12 @@ function App() {
         onClose={() => setPreferencesOpen(false)}
         aiSettings={aiSettings}
         onAiSettingsChange={setAiSettings}
+        meetingSettings={meetingSettings}
+        onMeetingSettingsChange={handleMeetingSettingsChange}
+        recorderState={meetingRecorderState}
+        onCheckPermissions={() => void checkMeetingPermissions()}
+        onRequestMicPermission={() => void requestMicPermission()}
+        onRequestSystemAudioPermission={() => void requestSystemAudioPermission()}
         updateStatus={updateStatus}
         updateVersion={updateVersion}
         updateError={updateError}
