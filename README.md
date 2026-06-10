@@ -22,14 +22,17 @@
 
 ### Editor
 - Rich text: bold, italic, strikethrough, headings, lists
-- Todo lists with checkboxes, quotes, code blocks, links, dividers
+- Todo lists with checkboxes, quotes, code blocks with syntax highlighting, links, dividers
 - **Tables** — insert via `/table` slash command, edit rows/columns in bubble menu
+- **Hand-drawing blocks** — insert an [Excalidraw](https://excalidraw.com/) canvas via toolbar → Insert → Drawing; SVG thumbnail shown inline, full canvas opens in a modal
 - **Markdown** — paste Markdown as rich text; type `# ` / `## ` / `### ` for headings
 - **Image paste** — paste screenshots inline (base64 in note)
 - Insert today's date or timestamp
 - **`/` slash menu** for quick blocks
 - **Bubble menu** on text selection (B, I, strike, link, code)
 - **Find in note** (`⌘F`) with match highlighting
+- **Word wrap toggle** — disable wrapping for wide code/data content
+- **Compact toolbar** — heading levels in H▾ dropdown, list types in ≡▾ dropdown, inserts in Insert▾ dropdown; fits on one line
 - **Full width / Standard** layout toggle in the note menu
 
 ### AI assistant (optional)
